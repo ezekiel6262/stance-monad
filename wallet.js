@@ -56,8 +56,8 @@ function PrivyWalletButton() {
     };
   }, [connectOrCreateWallet, logout, wallet]);
 
-  const disabled = !ready;
-  const label = disabled ? 'Loading wallet…' : wallet ? short(wallet.address) : authenticated ? 'Create wallet' : 'Sign in / Connect';
+  const disabled = false;
+  const label = wallet ? short(wallet.address) : authenticated ? 'Create wallet' : 'Sign in / Connect';
   return React.createElement('button', {
     id: 'connect-wallet', style: buttonStyle, disabled,
     title: wallet ? 'Privy wallet connected on Monad' : 'Sign in with email, passkey, or an external wallet',
