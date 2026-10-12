@@ -1,48 +1,125 @@
+import React, { useEffect, useMemo, useRef } from 'https://cdn.jsdelivr.net/npm/react@19.3.0/+esm';
+import { createRoot } from 'https://cdn.jsdelivr.net/npm/react-dom@19.3.0/client/+esm';
+import { PrivyProvider, useConnectOrCreateWallet, usePrivy, useWallets } from 'https://cdn.jsdelivr.net/npm/@privy-io/react-auth@3.48.1/+esm';
+
 const MONAD = {
-  chainId: '0x8f',
-  chainName: 'Monad Mainnet',
+  id: 143,
+  name: 'Monad',
   nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-  rpcUrls: ['https://rpc.monad.xyz'],
-  blockExplorerUrls: ['https://monadscan.com']
+  rpcUrls: { default: { http: ['https://rpc.monad.xyz'] } },
+  blockExplorers: { default: { name: 'Monad Explorer', url: 'https://monadscan.com' } }
 };
 
-let account = null;
-const button = document.getElementById('connect-wallet');
+const buttonStyle = {
+  border: '1px solid #FF8A3D', borderRadius: 999, padding: '5px 11px',
+  background: 'transparent', color: '#FF8A3D', font: 'inherit', cursor: 'pointer'
+};
 
-async function switchToMonad(provider) {
+const short = address => `${address.slice(0, 6)}…${address.slice(-4)}`;
+
+function PrivyWalletButton() {
+  const { ready, authenticated, logout } = usePrivy();
+  const { wallets, ready: walletsReady } = useWallets();
+  const walletRef = useRef(null);
+  const wallet = useMemo(() => wallets.find(item => item.chainType === 'ethereum') || null, [wallets]);
+  const { connectOrCreateWallet } = useConnectOrCreateWallet({
+    onSuccess: async ({ wallet: connected }) => {
+      walletRef.current = connected;
+      await connected.switchChain(MONAD.id);
+    }
+  });
+
+  useEffect(() => {
+    walletRef.current = wallet;
+    if (wallet) wallet.switchChain(MONAD.id).catch(() => {});
+  }, [wallet]);
+
+  useEffect(() => {
+    window.StanceWallet = {
+      chainId: MONAD.id,
+      getAccount: () => walletRef.current?.address || null,
+      connect: async () => {
+        if (!walletRef.current) await connectOrCreateWallet();
+        return walletRef.current?.address || null;
+      },
+      send: async transaction => {
+        const active = walletRef.current;
+        if (!active) throw new Error('Connect a wallet before continuing');
+        await active.switchChain(MONAD.id);
+        const provider = await active.getEthereumProvider();
+        return provider.request({
+          method: 'eth_sendTransaction',
+          params: [{ ...transaction, from: active.address }]
+        });
+      },
+      logout
+    };
+  }, [connectOrCreateWallet, logout, wallet]);
+
+  const disabled = !ready || !walletsReady;
+  const label = disabled ? 'Loading wallet…' : wallet ? short(wallet.address) : authenticated ? 'Create wallet' : 'Sign in / Connect';
+  return React.createElement('button', {
+    id: 'connect-wallet', style: buttonStyle, disabled,
+    title: wallet ? 'Privy wallet connected on Monad' : 'Sign in with email, passkey, or an external wallet',
+    onClick: () => connectOrCreateWallet().catch(error => console.error('Privy wallet connection failed', error))
+  }, label);
+}
+
+function injectedFallback() {
+  const button = document.getElementById('connect-wallet');
+  let account = null;
+  const switchToMonad = async provider => {
+    try {
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x8f' }] });
+    } catch (error) {
+      if (error?.code !== 4902) throw error;
+      await provider.request({ method: 'wallet_addEthereumChain', params: [{
+        chainId: '0x8f', chainName: 'Monad Mainnet', nativeCurrency: MONAD.nativeCurrency,
+        rpcUrls: MONAD.rpcUrls.default.http, blockExplorerUrls: [MONAD.blockExplorers.default.url]
+      }] });
+    }
+  };
+  const connect = async () => {
+    if (!window.ethereum) throw new Error('No wallet provider found');
+    [account] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    await switchToMonad(window.ethereum);
+    button.textContent = short(account);
+    return account;
+  };
+  window.StanceWallet = {
+    chainId: MONAD.id, connect, getAccount: () => account,
+    send: async transaction => {
+      if (!account) await connect();
+      await switchToMonad(window.ethereum);
+      return window.ethereum.request({ method: 'eth_sendTransaction', params: [{ ...transaction, from: account }] });
+    }
+  };
+  button?.addEventListener('click', () => connect().catch(error => { button.title = error.message; }));
+}
+
+async function start() {
+  const root = document.getElementById('connect-wallet-root');
+  if (!root) return;
   try {
-    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD.chainId }] });
+    const response = await fetch('/api/config');
+    const config = await response.json();
+    if (!config.privyAppId) throw new Error('Privy App ID is not configured');
+    createRoot(root).render(
+      React.createElement(PrivyProvider, {
+        appId: config.privyAppId,
+        config: {
+          appearance: { theme: 'dark', accentColor: '#FF8A3D' },
+          loginMethods: ['email', 'passkey', 'wallet'],
+          embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } },
+          defaultChain: MONAD,
+          supportedChains: [MONAD]
+        }
+      }, React.createElement(PrivyWalletButton))
+    );
   } catch (error) {
-    if (error?.code !== 4902) throw error;
-    await provider.request({ method: 'wallet_addEthereumChain', params: [MONAD] });
+    console.warn('Privy unavailable; using injected wallet fallback', error);
+    injectedFallback();
   }
 }
 
-async function connect() {
-  const provider = window.ethereum;
-  if (!provider) {
-    button.textContent = 'Privy activation pending';
-    button.title = 'Embedded wallet onboarding becomes available when NEXT_PUBLIC_PRIVY_APP_ID is configured.';
-    return null;
-  }
-  const [address] = await provider.request({ method: 'eth_requestAccounts' });
-  await switchToMonad(provider);
-  account = address;
-  button.textContent = `${address.slice(0, 6)}…${address.slice(-4)}`;
-  button.title = 'Connected to Monad mainnet';
-  return address;
-}
-
-async function send(transaction) {
-  if (!account) await connect();
-  if (!account) throw new Error('Wallet not connected');
-  await switchToMonad(window.ethereum);
-  return window.ethereum.request({ method: 'eth_sendTransaction', params: [{ ...transaction, from: account }] });
-}
-
-button?.addEventListener('click', () => connect().catch(error => {
-  button.textContent = 'Connection failed';
-  button.title = error.message;
-}));
-
-window.StanceWallet = { connect, send, getAccount: () => account, chainId: 143 };
+start();
