@@ -97,9 +97,12 @@ function injectedFallback() {
   button?.addEventListener('click', () => connect().catch(error => { button.title = error.message; }));
 }
 
+let mountedWalletRoot = null;
+
 async function start() {
   const root = document.getElementById('connect-wallet-root');
-  if (!root) return;
+  if (!root || root === mountedWalletRoot) return;
+  mountedWalletRoot = root;
   try {
     const response = await fetch('/api/config');
     const config = await response.json();
@@ -123,13 +126,6 @@ async function start() {
   }
 }
 
-if (document.getElementById('connect-wallet-root')) {
-  start();
-} else {
-  const walletRootObserver = new MutationObserver(() => {
-    if (!document.getElementById('connect-wallet-root')) return;
-    walletRootObserver.disconnect();
-    start();
-  });
-  walletRootObserver.observe(document.documentElement, { childList: true, subtree: true });
-}
+start();
+const walletRootObserver = new MutationObserver(() => start());
+walletRootObserver.observe(document.documentElement, { childList: true, subtree: true });
