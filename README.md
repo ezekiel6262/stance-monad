@@ -18,7 +18,11 @@ The deployed integration layer now exposes live health and readiness endpoints:
 - `GET /api/perpl` reads Perpl's public Monad context
 - `GET /api/integrations` reports configuration readiness without exposing secrets
 - `POST /api/nansen` provides an allow-listed, Monad-only server proxy
+- `POST /api/kuru-quote` obtains a wallet-bound Kuru Flow quote
+- `POST /api/kuru-transaction` returns ordered approval and swap requests for wallet signing
 - `POST /api/execute` fails closed until audited contracts, wallet policies and routing are configured
+
+`contracts/` contains a compile-verified escrow and public Proof/Tail receipt registry. They are not audited and must not be deployed to mainnet unchanged. `envio/` contains the post-deployment indexing schema and contract event configuration.
 
 Copy `.env.example` into Vercel environment variables. Secrets must never be committed. `REAL_MONEY_ENABLED` remains `false` until the contracts and transaction flow have passed security review.
 

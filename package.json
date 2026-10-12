@@ -2,6 +2,9 @@
   "name": "stance-monad",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "viem": "^2.38.5"
+  },
   "engines": {
     "node": ">=20"
   }
