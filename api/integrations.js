@@ -17,10 +17,10 @@ export default function handler(req, res) {
       mera: true,
       privy: configured('NEXT_PUBLIC_PRIVY_APP_ID') && configured('PRIVY_APP_SECRET'),
       nansen: configured('NANSEN_API_KEY'),
-      kuru: configured('KURU_API_URL') && configured('KURU_ROUTER_ADDRESS'),
+      kuru: true,
       envio: configured('ENVIO_GRAPHQL_URL'),
       chainlinkCre: configured('CRE_WORKFLOW_ID'),
-      contracts: configured('STANCE_FACTORY_ADDRESS') && configured('STANCE_MARKET_ADDRESS') && configured('CONVICTION_VAULT_ADDRESS')
+      contracts: configured('STANCE_MARKET_ADDRESS') && configured('STANCE_PORTFOLIO_ADDRESS')
     }
   });
 }
