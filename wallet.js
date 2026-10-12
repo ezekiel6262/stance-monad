@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef } from 'https://cdn.jsdelivr.net/npm/react@19.3.0/+esm';
-import { createRoot } from 'https://cdn.jsdelivr.net/npm/react-dom@19.3.0/client/+esm';
-import { PrivyProvider, useConnectOrCreateWallet, usePrivy, useWallets } from 'https://cdn.jsdelivr.net/npm/@privy-io/react-auth@3.48.1/+esm';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { createRoot } from 'react-dom/client';
+import { PrivyProvider, useConnectOrCreateWallet, usePrivy, useWallets } from '@privy-io/react-auth';
 
 const MONAD = {
   id: 143,
