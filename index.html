@@ -47,6 +47,13 @@ select option{background:#15151C;color:#F1EFE8}
       <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#FF8A3D">Monad-only hackathon build</span>
       <span style="font-size:13px;color:#D6D4CC">Every stake, Stance, Proof position and Tail settles on Monad.</span>
     </div>
+    <div id="live-integrations" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-8px 0 18px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0">
+      <span>LIVE SERVICES</span>
+      <span id="svc-monad" style="border:1px solid #33333D;border-radius:999px;padding:4px 9px">Monad checking</span>
+      <span id="svc-perpl" style="border:1px solid #33333D;border-radius:999px;padding:4px 9px">Perpl checking</span>
+      <span id="svc-nansen" style="border:1px solid #33333D;border-radius:999px;padding:4px 9px">Nansen not configured</span>
+      <span id="svc-money" style="border:1px solid #33333D;border-radius:999px;padding:4px 9px">Real money locked</span>
+    </div>
 
     <sc-if value="{{ isFeed }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px">
@@ -1514,6 +1521,28 @@ class Component extends DCLogic {
     };
   }
 }
+</script>
+<script>
+(async function showLiveServices() {
+  const paint = (id, label, ok) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = label;
+    el.style.borderColor = ok ? '#FF8A3D' : '#5B3131';
+    el.style.color = ok ? '#FF8A3D' : '#D99292';
+  };
+  try {
+    const readiness = await fetch('/api/integrations', { cache: 'no-store' }).then(r => r.json());
+    paint('svc-nansen', readiness.services?.nansen ? 'Nansen ready' : 'Nansen key needed', Boolean(readiness.services?.nansen));
+    paint('svc-money', readiness.realMoneyEnabled ? 'Real money enabled' : 'Real money locked', Boolean(readiness.realMoneyEnabled));
+  } catch (_) {
+    paint('svc-nansen', 'Integration API offline', false);
+  }
+  await Promise.allSettled([
+    fetch('/api/monad', { cache: 'no-store' }).then(r => r.json()).then(x => paint('svc-monad', x.ok ? `Monad block ${Number(x.latestBlock).toLocaleString()}` : 'Monad unavailable', Boolean(x.ok))).catch(() => paint('svc-monad', 'Monad unavailable', false)),
+    fetch('/api/perpl', { cache: 'no-store' }).then(r => r.json()).then(x => paint('svc-perpl', x.ok ? 'Perpl live' : 'Perpl unavailable', Boolean(x.ok))).catch(() => paint('svc-perpl', 'Perpl unavailable', false))
+  ]);
+})();
 </script>
 </body>
 </html>
