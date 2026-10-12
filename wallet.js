@@ -19,7 +19,7 @@ const short = address => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
 function PrivyWalletButton() {
   const { ready, authenticated, logout } = usePrivy();
-  const { wallets, ready: walletsReady } = useWallets();
+  const { wallets } = useWallets();
   const walletRef = useRef(null);
   const wallet = useMemo(() => wallets.find(item => item.chainType === 'ethereum') || null, [wallets]);
   const { connectOrCreateWallet } = useConnectOrCreateWallet({
@@ -56,7 +56,7 @@ function PrivyWalletButton() {
     };
   }, [connectOrCreateWallet, logout, wallet]);
 
-  const disabled = !ready || !walletsReady;
+  const disabled = !ready;
   const label = disabled ? 'Loading wallet…' : wallet ? short(wallet.address) : authenticated ? 'Create wallet' : 'Sign in / Connect';
   return React.createElement('button', {
     id: 'connect-wallet', style: buttonStyle, disabled,
@@ -109,7 +109,7 @@ async function start() {
         appId: config.privyAppId,
         config: {
           appearance: { theme: 'dark', accentColor: '#FF8A3D' },
-          // Passkeys remain enabled in the Privy dashboard. The connector modal
+          // PassKeys remain enabled in the Privy dashboard. The connector modal
           // accepts email and external wallets as its explicit entry methods;
           // enrolled passkeys are surfaced by Privy during authentication.
           loginMethods: ['email', 'wallet'],
