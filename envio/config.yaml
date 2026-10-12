@@ -17,6 +17,6 @@ chains:
     start_block: 0
     contracts:
       - name: StanceMarket
-        address: "0x0000000000000000000000000000000000000000" # replace after audited deployment
+        address: "0x6f9103855b1c699f3ce1eb5105415cd2f6ca796e"
       - name: StancePortfolio
-        address: "0x0000000000000000000000000000000000000000" # replace after audited deployment
+        address: "0x4e2c91fe23e2415d110c9af24474dc1b21c3aeb9"

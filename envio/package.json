@@ -1,0 +1,17 @@
+{
+  "name": "stance-monad-indexer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "codegen": "envio codegen",
+    "check": "envio codegen && tsc --noEmit",
+    "dev": "envio dev"
+  },
+  "dependencies": {
+    "envio": "3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.7.2",
+    "typescript": "5.9.3"
+  }
+}

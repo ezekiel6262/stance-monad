@@ -35,3 +35,14 @@ type Tail {
   amount: BigInt!
   transactionHash: String!
 }
+
+type AccountStat {
+  id: ID!
+  backVolume: BigInt!
+  fadeVolume: BigInt!
+  claims: BigInt!
+  claimedAmount: BigInt!
+  proofStances: BigInt!
+  tailsMade: BigInt!
+  tailsReceived: BigInt!
+}
