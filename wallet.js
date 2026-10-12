@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PrivyProvider, useConnectOrCreateWallet, usePrivy, useWallets } from '@privy-io/react-auth';
+import { defineChain } from 'viem';
 
-const MONAD = {
+const MONAD = defineChain({
   id: 143,
   name: 'Monad',
   nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
   rpcUrls: { default: { http: ['https://rpc.monad.xyz'] } },
   blockExplorers: { default: { name: 'Monad Explorer', url: 'https://monadscan.com' } }
-};
+});
 
 const buttonStyle = {
   border: '1px solid #FF8A3D', borderRadius: 999, padding: '5px 11px',
@@ -143,6 +144,8 @@ async function start() {
           // accepts email and external wallets as its explicit entry methods;
           // enrolled passkeys are surfaced by Privy during authentication.
           loginMethods: ['email', 'wallet'],
+          defaultChain: MONAD,
+          supportedChains: [MONAD],
           embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } }
         }
       }, React.createElement(PrivyWalletButton))
