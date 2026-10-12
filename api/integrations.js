@@ -13,7 +13,10 @@ export default function handler(req, res) {
     realMoneyEnabled: process.env.REAL_MONEY_ENABLED === 'true',
     services: {
       monad: true,
-      perpl: configured('PERPL_API_KEY'),
+      // Perpl public Monad market data is live without authentication. Account
+      // analytics require a wallet-scoped Ed25519 API key and stay separate.
+      perpl: true,
+      perplAccount: configured('PERPL_API_KEY') && configured('PERPL_API_KEY_SECRET'),
       mera: configured('MERA_PROJECT_ID'),
       privy: configured('NEXT_PUBLIC_PRIVY_APP_ID') && configured('PRIVY_APP_SECRET'),
       nansen: configured('NANSEN_API_KEY'),
