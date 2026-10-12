@@ -23,6 +23,20 @@ async function signedGet(base, target, apiKey, secret) {
   return data;
 }
 
+export function perplProviderIssue(error) {
+  if (error?.status === 451) {
+    return {
+      code: 'origin_not_authorized',
+      message: 'Perpl has not authorized this deployment origin for the enrolled API key.'
+    };
+  }
+
+  return {
+    code: 'provider_request_failed',
+    message: 'Perpl account analytics are temporarily unavailable.'
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('allow', 'GET');
@@ -55,11 +69,13 @@ export default async function handler(req, res) {
       }
     });
   } catch (error) {
+    const issue = perplProviderIssue(error);
     return json(res, error.status || 502, {
       ok: false,
       error: 'perpl_account_request_failed',
-      detail: error.message,
-      providerStatus: error.status
+      providerStatus: error.status,
+      providerIssue: issue.code,
+      detail: issue.message
     });
   }
 }
