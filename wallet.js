@@ -109,7 +109,10 @@ async function start() {
         appId: config.privyAppId,
         config: {
           appearance: { theme: 'dark', accentColor: '#FF8A3D' },
-          loginMethods: ['email', 'passkey', 'wallet'],
+          // Passkeys remain enabled in the Privy dashboard. The connector modal
+          // accepts email and external wallets as its explicit entry methods;
+          // enrolled passkeys are surfaced by Privy during authentication.
+          loginMethods: ['email', 'wallet'],
           embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } },
           defaultChain: MONAD,
           supportedChains: [MONAD]
