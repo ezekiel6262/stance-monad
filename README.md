@@ -17,6 +17,7 @@ The deployed integration layer now exposes live health and readiness endpoints:
 
 - `GET /api/monad` verifies Monad mainnet chain ID `143` and the latest block
 - `GET /api/perpl` reads Perpl's public Monad context
+- `GET /api/envio` reads current Monad height and recent Stance contract events through Envio HyperSync
 - `GET /api/integrations` reports configuration readiness without exposing secrets
 - `POST /api/nansen` provides an allow-listed, Monad-only server proxy
 - `POST /api/kuru-quote` obtains a wallet-bound Kuru Flow quote

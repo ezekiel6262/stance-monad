@@ -18,7 +18,7 @@ export default function handler(req, res) {
       privy: configured('NEXT_PUBLIC_PRIVY_APP_ID') && configured('PRIVY_APP_SECRET'),
       nansen: configured('NANSEN_API_KEY'),
       kuru: true,
-      envio: configured('ENVIO_GRAPHQL_URL'),
+      envio: configured('ENVIO_GRAPHQL_URL') || configured('ENVIO_API_TOKEN'),
       chainlinkCre: configured('CRE_WORKFLOW_ID'),
       contracts: configured('STANCE_MARKET_ADDRESS') && configured('STANCE_PORTFOLIO_ADDRESS')
     }
