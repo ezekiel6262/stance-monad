@@ -113,9 +113,7 @@ async function start() {
           // accepts email and external wallets as its explicit entry methods;
           // enrolled passkeys are surfaced by Privy during authentication.
           loginMethods: ['email', 'wallet'],
-          embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } },
-          defaultChain: MONAD,
-          supportedChains: [MONAD]
+          embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } }
         }
       }, React.createElement(PrivyWalletButton))
     );
