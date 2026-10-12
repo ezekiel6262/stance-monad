@@ -17,6 +17,7 @@ The deployed integration layer now exposes live health and readiness endpoints:
 
 - `GET /api/monad` verifies Monad mainnet chain ID `143` and the latest block
 - `GET /api/perpl` reads Perpl's live public Monad context without custody or a shared trading key
+- `GET /api/perpl-account` verifies the read-only Perpl account integration and returns only aggregate proof/risk facts (never balances or raw account data)
 - Perpl account analytics and leverage execution remain locked until a user enrolls a wallet-scoped key and explicitly enables the required onchain account permissions
 - `GET /api/envio` reads current Monad height and recent Stance contract events through Envio HyperSync
 - `GET /api/integrations` reports configuration readiness without exposing secrets
