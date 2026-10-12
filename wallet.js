@@ -123,4 +123,13 @@ async function start() {
   }
 }
 
-start();
+if (document.getElementById('connect-wallet-root')) {
+  start();
+} else {
+  const walletRootObserver = new MutationObserver(() => {
+    if (!document.getElementById('connect-wallet-root')) return;
+    walletRootObserver.disconnect();
+    start();
+  });
+  walletRootObserver.observe(document.documentElement, { childList: true, subtree: true });
+}
