@@ -25,6 +25,7 @@ contract StancePortfolio {
         string calldata evidenceURI
     ) external {
         require(stanceId != bytes32(0) && thesisHash != bytes32(0), "INVALID_STANCE");
+        require(token != address(0) && positionSize > 0 && bytes(evidenceURI).length > 0, "INVALID_PROOF");
         require(authors[stanceId] == address(0), "STANCE_EXISTS");
         require(expiresAt > block.timestamp, "EXPIRED");
         authors[stanceId] = msg.sender;
@@ -33,6 +34,7 @@ contract StancePortfolio {
 
     function recordTail(address caller, bytes32 stanceId, uint256 amount) external {
         require(caller != address(0) && authors[stanceId] == caller, "INVALID_CALLER");
+        require(msg.sender != caller && amount > 0, "INVALID_TAIL");
         emit TailRecorded(msg.sender, caller, stanceId, amount);
     }
 }

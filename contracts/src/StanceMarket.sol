@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 interface IERC20Stance {
+    function balanceOf(address account) external view returns (uint256);
     function transfer(address to, uint256 value) external returns (bool);
     function transferFrom(address from, address to, uint256 value) external returns (bool);
 }
@@ -20,6 +21,7 @@ contract StanceMarket {
 
     IERC20Stance public immutable collateral;
     address public owner;
+    address public pendingOwner;
     address public resolver;
     uint256 public marketCount;
     uint256 private locked = 1;
@@ -35,6 +37,7 @@ contract StanceMarket {
     event Claimed(uint256 indexed marketId, address indexed account, uint256 amount);
     event ResolverChanged(address indexed resolver);
     event OwnershipTransferred(address indexed owner);
+    event OwnershipTransferStarted(address indexed currentOwner, address indexed pendingOwner);
 
     modifier onlyOwner() { require(msg.sender == owner, "OWNER"); _; }
     modifier onlyResolver() { require(msg.sender == resolver, "RESOLVER"); _; }
@@ -58,7 +61,9 @@ contract StanceMarket {
         Market storage market = markets[marketId];
         require(market.thesisHash != bytes32(0) && market.outcome == Outcome.Unresolved, "INACTIVE");
         require(block.timestamp < market.closesAt && amount > 0, "CLOSED_OR_ZERO");
+        uint256 balanceBefore = collateral.balanceOf(address(this));
         require(collateral.transferFrom(msg.sender, address(this), amount), "TRANSFER_IN");
+        require(collateral.balanceOf(address(this)) - balanceBefore == amount, "UNSUPPORTED_COLLATERAL");
         if (back) { backStake[marketId][msg.sender] += amount; market.backPool += amount; }
         else { fadeStake[marketId][msg.sender] += amount; market.fadePool += amount; }
         emit PositionTaken(marketId, msg.sender, back, amount);
@@ -68,6 +73,7 @@ contract StanceMarket {
         Market storage market = markets[marketId];
         require(market.outcome == Outcome.Unresolved && block.timestamp >= market.closesAt, "NOT_RESOLVABLE");
         require(outcome != Outcome.Unresolved, "INVALID_OUTCOME");
+        require(outcome == Outcome.Cancelled || (outcome == Outcome.Back ? market.backPool > 0 : market.fadePool > 0), "EMPTY_WINNING_POOL");
         market.outcome = outcome;
         emit MarketResolved(marketId, outcome);
     }
@@ -94,7 +100,14 @@ contract StanceMarket {
 
     function transferOwnership(address nextOwner) external onlyOwner {
         require(nextOwner != address(0), "ZERO_ADDRESS");
-        owner = nextOwner;
-        emit OwnershipTransferred(nextOwner);
+        pendingOwner = nextOwner;
+        emit OwnershipTransferStarted(owner, nextOwner);
+    }
+
+    function acceptOwnership() external {
+        require(msg.sender == pendingOwner, "PENDING_OWNER");
+        owner = msg.sender;
+        pendingOwner = address(0);
+        emit OwnershipTransferred(msg.sender);
     }
 }
