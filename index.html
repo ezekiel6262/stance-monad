@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stance - Monad conviction markets</title>
+<meta name="description" content="Back, Fade and Tail thesis-backed calls on Monad. Build a public portfolio of verifiable judgment.">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+body{margin:0;background:#0B0B0F;color:#F1EFE8;font-family:'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#FF8A3D;text-decoration:none}a:hover{color:#FFA566}
+input,select,textarea,button{font-family:inherit}
+input::placeholder,textarea::placeholder{color:#6E6D75}
+select option{background:#15151C;color:#F1EFE8}
+</style>
+</helmet>
+<div style="display:flex;min-height:100vh;background:#0B0B0F">
+  <aside style="width:248px;flex:0 0 248px;border-right:1px solid #1C1C23;padding:24px 16px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh;box-sizing:border-box;overflow-y:auto">
+    <a href="/" style="display:flex;align-items:center;gap:10px;padding:0 10px 22px;color:#F1EFE8">
+      <svg width="28" height="28" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#F1EFE8"></rect><line x1="11" y1="29" x2="25" y2="15" style="stroke:#0B0B0F;stroke-width:5;stroke-linecap:round"></line><circle cx="28" cy="12" r="5" fill="#FF8A3D"></circle></svg>
+      <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;letter-spacing:-0.03em">stance</span>
+    </a>
+    <sc-for list="{{ nav }}" as="item" hint-placeholder-count="7">
+      <div onClick="{{ item.onClick }}" style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-radius:10px;cursor:pointer;font-size:16px;background:{{ item.bg }};color:{{ item.color }}" style-hover="background:#16161C">
+        <span>{{ item.label }}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FF8A3D;letter-spacing:0.04em">{{ item.badge }}</span>
+      </div>
+    </sc-for>
+    <button onClick="{{ goCreate }}" style="margin-top:18px;flex-shrink:0;height:48px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:15px;cursor:pointer" style-hover="background:#FF9D5C" style-active="background:#E8772C">Take a stance</button>
+    <div onClick="{{ goWallet }}" style="margin-top:auto;flex-shrink:0;border:1px solid #24242C;background:#121218;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;cursor:pointer" style-hover="border-color:#33333D">
+      <span style="font-size:13px;color:#A9A7A0">Balance / {{ modeLabel }}</span>
+      <div style="display:flex;align-items:baseline;gap:8px"><span style="font-family:'JetBrains Mono',monospace;font-size:24px">${{ balance }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#8B8A92">USDC</span></div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">{{ points }} Play points</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">+ $3.12 conviction yield today</span>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;padding:26px 36px 80px;box-sizing:border-box">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px;padding:11px 14px;border:1px solid #3A2512;background:#1A130C;border-radius:12px;flex-wrap:wrap">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#FF8A3D">Monad-only hackathon build</span>
+      <span style="font-size:13px;color:#D6D4CC">Every stake, Stance, Proof position and Tail settles on Monad.</span>
+    </div>
+
+    <sc-if value="{{ isFeed }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px">
+        <input placeholder="Search stances, tokens, people" style="flex:0 1 580px;min-width:0;height:48px;box-sizing:border-box;padding:0 18px;border-radius:10px;border:1px solid #2A2A33;background:#121218;color:#F1EFE8;font-size:15px;outline:none">
+        <div style="display:flex;gap:10px;align-items:center">
+          <button onClick="{{ goAlerts }}" style="height:44px;padding:0 18px;border-radius:10px;border:1px solid #33333D;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;display:flex;gap:8px;align-items:center" style-hover="background:#16161C">Alerts <span style="color:#FF8A3D">{{ unread }}</span></button>
+          <div onClick="{{ goReceipts }}" style="width:44px;height:44px;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer">ZK</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <sc-for list="{{ filters }}" as="f" hint-placeholder-count="8">
+          <button onClick="{{ f.onClick }}" style="height:42px;padding:0 18px;border-radius:999px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.color }};font-size:15px;cursor:pointer">{{ f.label }}</button>
+        </sc-for>
+      </div>
+      <p style="margin:14px 0 22px;font-size:14px;color:#A9A7A0">Ranked by what well-calibrated people are taking positions on.</p>
+      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
+
+          <sc-for list="{{ userCards }}" as="c" hint-placeholder-count="0">
+            <div style="background:#15151C;border:1px solid #3A2512;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="display:flex;gap:8px"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px">{{ c.type }}</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">{{ c.topic }}</span></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">@zk / just now</span>
+              </div>
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;text-wrap:pretty;cursor:pointer" onClick="{{ c.onOpen }}">{{ c.text }}</div>
+              <div style="display:flex;height:6px;border-radius:99px;overflow:hidden"><div style="width:50%;background:#FF8A3D"></div><div style="flex:1;background:#5B8CFF"></div></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:13px"><span style="color:#FF8A3D">BACK 50% / 0.50</span><span style="color:#A9A7A0">1 holder / {{ c.stake }} pool</span><span style="color:#5B8CFF">FADE 50% / 0.50</span></div>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ feedEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px dashed #2F2F38;border-radius:16px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+              <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:26px">Your Following feed is empty.</span>
+              <span style="font-size:15px;color:#A9A7A0;max-width:420px;line-height:1.5">Follow callers and forecasters to see their stances here. Following also turns on exit alerts.</span>
+              <button onClick="{{ showForYou }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;margin-top:8px">Browse top callers</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isRightFeed }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px 24px">
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px">Right when you were wrong</div>
+              <div style="font-size:14px;color:#A9A7A0;margin:4px 0 10px">People who called it on stances you lost. Worth following.</div>
+              <sc-for list="{{ rightList }}" as="p" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #24242C;flex-wrap:wrap">
+                  <span onClick="{{ p.onOpen }}" style="font-weight:700;font-size:16px;cursor:pointer;min-width:140px">{{ p.u }}</span>
+                  <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px"><span style="font-size:15px">{{ p.stance }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0">{{ p.meta }}</span></div>
+                  <button onClick="{{ p.onFollow }}" style="height:38px;padding:0 14px;border:1px solid #33333D;border-radius:9px;background:transparent;color:#F1EFE8;font-weight:600;font-size:14px;cursor:pointer">{{ p.label }}</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isTribeFeed }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px 24px">
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px;margin-bottom:10px">Activity in your tribes</div>
+              <sc-for list="{{ tribeFeed }}" as="t" hint-placeholder-count="4">
+                <div onClick="{{ t.onOpen }}" style="display:flex;gap:14px;padding:14px 0;border-top:1px solid #24242C;cursor:pointer;align-items:baseline">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ t.c }};min-width:130px">{{ t.tribe }}</span>
+                  <span style="flex:1;font-size:15px"><b>{{ t.u }}</b> {{ t.t }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0">{{ t.time }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ showOpinion }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="display:flex;gap:8px"><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Music</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Subjective</span></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">@temi_sounds / 11d left</span>
+            </div>
+            <div onClick="{{ goOpinion }}" style="font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;cursor:pointer;text-wrap:pretty">Afrobeats will have 3 songs in the global top 10 by December.</div>
+            <div style="display:flex;height:6px;border-radius:99px;overflow:hidden"><div style="width:64%;background:#FF8A3D"></div><div style="flex:1;background:#5B8CFF"></div></div>
+            <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:13px"><span style="color:#FF8A3D">BACK 64% / 0.64</span><span style="color:#A9A7A0">1,204 holders / $41.2k pool</span><span style="color:#5B8CFF">FADE 36% / 0.36</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px">
+              <button onClick="{{ backFromFeed }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Back</button>
+              <button onClick="{{ fadeFromFeed }}" style="height:50px;border:0;border-radius:10px;background:#5B8CFF;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#7AA1FF">Fade</button>
+              <button onClick="{{ goOpinion }}" style="height:50px;padding:0 22px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">Open</button>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showProof }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px">Proof Stance</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Monad</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Said vs Did: Held</span></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">@kelechi_trench / Caller A-</span>
+            </div>
+            <div onClick="{{ goProof }}" style="font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;cursor:pointer">$GLOOP to 60M MC in 30 days. Not selling below 20M.</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">ENTRY MC</span><span style="font-family:'JetBrains Mono',monospace;font-size:19px">$1.2M</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">NOW</span><span style="font-family:'JetBrains Mono',monospace;font-size:19px;color:#FF8A3D">$9.8M</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">PNL</span><span style="font-family:'JetBrains Mono',monospace;font-size:19px;color:#FF8A3D">+716%</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">TARGET</span><span style="font-family:'JetBrains Mono',monospace;font-size:19px">16% there</span></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px">
+              <button onClick="{{ goProof }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Back the call</button>
+              <button onClick="{{ goProof }}" style="height:50px;border:0;border-radius:10px;background:#5B8CFF;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#7AA1FF">Fade the call</button>
+              <button onClick="{{ goProof }}" style="height:50px;padding:0 22px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">Tail</button>
+            </div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showLive }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#13131B;border:1px solid #24242C;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <div style="display:flex;gap:8px"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px;display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#FF8A3D"></span>LIVE</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Football</span></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">2,311 in room / 67'</span>
+            </div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em">Lagos derby: home side scores next</div>
+            <svg viewBox="0 0 800 110" preserveAspectRatio="none" style="width:100%;height:110px;display:block"><polyline points="{{ feedLivePts }}" style="fill:none;stroke:#FF8A3D;stroke-width:3;vector-effect:non-scaling-stroke;stroke-linejoin:round"></polyline></svg>
+            <div><button onClick="{{ goLive }}" style="height:48px;padding:0 20px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Join the room</button></div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showCmm }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Change My Mind</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">@ada.calls / bounty $500</span>
+            </div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1.15">"Most L2s will be irrelevant in 3 years." Change my mind.</div>
+            <span style="font-size:15px;color:#A9A7A0">47 arguments submitted / owner hasn't flipped</span>
+            <div><button onClick="{{ goCmm }}" style="height:48px;padding:0 20px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">Submit an argument</button></div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{ showPerp }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <div style="display:flex;gap:8px"><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Perpetual</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Culture</span></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">never resolves</span>
+            </div>
+            <div onClick="{{ openLagos }}" style="font-family:'Bricolage Grotesque',sans-serif;font-size:26px;font-weight:700;letter-spacing:-0.02em;cursor:pointer">Lagos is the best city in Africa.</div>
+            <div style="display:flex;height:6px;border-radius:99px;overflow:hidden"><div style="width:71%;background:#FF8A3D"></div><div style="flex:1;background:#5B8CFF"></div></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:13px"><span style="color:#FF8A3D">BACK 71%</span><span style="color:#A9A7A0">yield 4.1% / 30d</span><span style="color:#5B8CFF">FADE 29%</span></div>
+          </div>
+          </sc-if>
+        </div>
+
+        <div style="flex:0 1 340px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px 22px 18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Top callers this week</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">All</span></div>
+            <sc-for list="{{ callers }}" as="c" hint-placeholder-count="4">
+              <div onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:14px;padding:8px 0;cursor:pointer;font-size:17px">
+                <span style="font-family:'JetBrains Mono',monospace;color:#8B8A92;width:14px">{{ c.rank }}</span><span style="flex:1">{{ c.name }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ c.color }}">{{ c.grade }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:14px">Your open stances</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ openStances }}" as="o" hint-placeholder-count="3">
+                <div style="display:flex;justify-content:space-between;gap:10px;font-family:'JetBrains Mono',monospace;font-size:14px"><span>{{ o.name }}</span><span style="color:{{ o.color }}">{{ o.val }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Exit alerts</div>
+            <div style="font-size:15px;color:#D6D4CC;line-height:1.4"><span onClick="{{ openMira }}" style="color:#5B8CFF;cursor:pointer">@mira_onchain</span> trimmed 30% of $SMOGGY / 4m ago</div>
+            <div style="font-size:15px;color:#D6D4CC;line-height:1.4"><span onClick="{{ openBisi }}" style="color:#5B8CFF;cursor:pointer">@0xbisi</span> closed ETH long 5x / 22m ago</div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:14px">Trending tribes</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <span onClick="{{ openT_afroB }}" style="border:1px solid #2F2F38;border-radius:999px;padding:6px 12px;font-size:14px;color:#D6D4CC;cursor:pointer">Afrobeats Backers</span>
+              <span onClick="{{ openT_ethF }}" style="border:1px solid #2F2F38;border-radius:999px;padding:6px 12px;font-size:14px;color:#D6D4CC;cursor:pointer">ETH Faders</span>
+              <span onClick="{{ openT_gloopD }}" style="border:1px solid #2F2F38;border-radius:999px;padding:6px 12px;font-size:14px;color:#D6D4CC;cursor:pointer">GLOOP Diamond</span>
+              <span onClick="{{ openT_officeF }}" style="border:1px solid #2F2F38;border-radius:999px;padding:6px 12px;font-size:14px;color:#D6D4CC;cursor:pointer">Office Faders</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isOpinion }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ goFeed }}" style="font-size:15px;color:#A9A7A0;cursor:pointer;margin-bottom:18px" style-hover="color:#F1EFE8">Back to feed</div>
+      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ stTags }}" as="t" hint-placeholder-count="3"><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">{{ t }}</span></sc-for></div>
+            <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:50px;line-height:1.02;font-weight:800;letter-spacing:-0.035em;text-wrap:pretty">{{ st.title }}</h1>
+            <div style="display:flex;align-items:center;gap:10px;font-size:15px;flex-wrap:wrap"><span style="width:28px;height:28px;border-radius:7px;background:{{ st.authColor }};color:#0B0B0F;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">{{ st.ini }}</span><span onClick="{{ openAuthor }}" style="font-weight:500;cursor:pointer">{{ st.author }}</span><span style="color:#A9A7A0">{{ st.authMeta }}</span></div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px">
+              <div><div style="font-size:14px;color:#A9A7A0">Back probability</div><div style="font-family:'JetBrains Mono',monospace;font-size:44px;color:#FF8A3D">{{ oppBackNow }}%</div></div>
+              <div style="display:flex;gap:8px">
+                <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
+                  <button onClick="{{ r.onClick }}" style="height:38px;padding:0 13px;border-radius:999px;border:1px solid {{ r.border }};background:transparent;color:#F1EFE8;font-weight:600;font-size:14px;cursor:pointer">{{ r.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <svg viewBox="0 0 800 200" preserveAspectRatio="none" style="width:100%;height:200px;display:block;margin:20px 0">
+              <line x1="0" y1="100" x2="800" y2="100" style="stroke:#2A2A33;stroke-width:1;stroke-dasharray:4 6;vector-effect:non-scaling-stroke"></line>
+              <polyline points="{{ oppFadePts }}" style="fill:none;stroke:#5B8CFF;stroke-width:3;stroke-dasharray:2 6;stroke-linecap:round;vector-effect:non-scaling-stroke"></polyline>
+              <polyline points="{{ oppBackPts }}" style="fill:none;stroke:#FF8A3D;stroke-width:3;stroke-linejoin:round;vector-effect:non-scaling-stroke"></polyline>
+            </svg>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+              <div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">POOL</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;margin-top:4px">{{ pool }}</div></div>
+              <div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">HOLDERS</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;margin-top:4px">{{ holders }}</div></div>
+              <div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">FLIPS 24H</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;margin-top:4px">88</div></div>
+              <div><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">YIELD PAID</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;margin-top:4px;color:#FF8A3D">$1.9k</div></div>
+            </div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px">Both sides, summarized</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+              <div style="background:#1A130C;border:1px solid #3A2512;border-radius:12px;padding:18px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FF8A3D;letter-spacing:0.06em;margin-bottom:10px">BACKERS ARGUE</div><div style="font-size:16px;line-height:1.5">{{ st.backArg }}</div></div>
+              <div style="background:#0F1424;border:1px solid #233466;border-radius:12px;padding:18px"><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#5B8CFF;letter-spacing:0.06em;margin-bottom:10px">FADERS ARGUE</div><div style="font-size:16px;line-height:1.5">{{ st.fadeArg }}</div></div>
+            </div>
+            <span style="font-size:13px;color:#A9A7A0">AI summary of the strongest arguments from each tribe.</span>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px;margin-bottom:8px">Resolution criteria</div>
+            <p style="margin:0;font-size:17px;line-height:1.6;color:#A9A7A0">{{ st.criteria }}</p>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px">Discussion</span><span style="font-size:14px;color:#A9A7A0">Hold a side to comment</span></div>
+            <sc-for list="{{ comments }}" as="c" hint-placeholder-count="2">
+              <div style="display:flex;gap:14px">
+                <span style="width:40px;height:40px;flex:0 0 40px;border-radius:9px;background:#1F1F27;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px">{{ c.ini }}</span>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:center;gap:10px"><span style="font-weight:700;font-size:15px">{{ c.user }}</span><span style="border:1px solid {{ c.color }};color:{{ c.color }};border-radius:999px;padding:2px 10px;font-size:13px">{{ c.tag }}</span></div>
+                  <div style="font-size:17px;line-height:1.45">{{ c.text }}</div>
+                </div>
+              </div>
+            </sc-for>
+            <sc-if value="{{ canComment }}" hint-placeholder-val="{{ false }}">
+              <input value="{{ commentDraft }}" onChange="{{ onCommentDraft }}" onKeyDown="{{ onCommentKey }}" placeholder="Add to the discussion and press Enter" style="height:46px;padding:0 16px;border-radius:10px;border:1px solid #2A2A33;background:#0F0F14;color:#F1EFE8;font-size:15px;outline:none">
+            </sc-if>
+          </div>
+        </div>
+        <div style="flex:0 1 340px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:#0F0F14;border-radius:12px">
+              <button onClick="{{ pickBack }}" style="height:46px;border:0;border-radius:9px;background:{{ backTabBg }};color:{{ backTabColor }};font-weight:600;font-size:16px;cursor:pointer">Back {{ backPriceLbl }}</button>
+              <button onClick="{{ pickFade }}" style="height:46px;border:0;border-radius:9px;background:{{ fadeTabBg }};color:{{ fadeTabColor }};font-weight:600;font-size:16px;cursor:pointer">Fade {{ fadePriceLbl }}</button>
+            </div>
+            <div style="font-size:14px;color:#A9A7A0">Amount (USDC)</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <sc-for list="{{ amounts }}" as="a" hint-placeholder-count="4">
+                <button onClick="{{ a.onClick }}" style="height:46px;border-radius:10px;border:1px solid #2F2F38;background:{{ a.bg }};color:{{ a.color }};font-weight:600;font-size:16px;cursor:pointer">{{ a.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;font-family:'JetBrains Mono',monospace;font-size:14px">
+              <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Est. shares</span><span>{{ estShares }}</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Payout if right</span><span style="color:#FF8A3D">${{ payout }}</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Exit fee to holders</span><span>2.0%</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Gas</span><span>Sponsored</span></div>
+            </div>
+            <button onClick="{{ tradeSafe }}" style="height:54px;border:0;border-radius:10px;background:{{ ctaBg }};color:#0B0B0F;font-weight:600;font-size:18px;cursor:pointer">{{ ctaLabel }}</button>
+            <div style="font-size:13px;color:#A9A7A0;text-align:center">Playing with points? Switch to Stance Play.</div>
+          </div>
+          <div style="background:#1A130C;border:1px solid #3A2512;border-radius:16px;padding:22px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.06em">CONVICTION YIELD</div>
+            <p style="margin:12px 0 10px;font-size:17px;line-height:1.5">Hold and earn from every exit. Current rate for Back holders:</p>
+            <div style="display:flex;align-items:baseline;gap:12px"><span style="font-family:'JetBrains Mono',monospace;font-size:36px;color:#FF8A3D">3.4%</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px">/ 30d</span></div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:4px">Tribe rooms</div>
+            <div onClick="{{ openBackTribe }}" style="display:flex;justify-content:space-between;align-items:center;background:#0F0F14;border-radius:10px;padding:14px 16px;cursor:pointer;font-size:17px" style-hover="background:#1C1C23"><span>{{ backTribeName }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">{{ backTribeN }}</span></div>
+            <div onClick="{{ openFadeTribe }}" style="display:flex;justify-content:space-between;align-items:center;background:#0F0F14;border-radius:10px;padding:14px 16px;cursor:pointer;font-size:17px" style-hover="background:#1C1C23"><span>{{ fadeTribeName }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#5B8CFF">{{ fadeTribeN }}</span></div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:4px">Activity</div>
+            <sc-for list="{{ activity }}" as="a" hint-placeholder-count="3">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:14px;display:flex;gap:8px"><span style="color:{{ a.c }}">{{ a.k }}</span><span>{{ a.t }}</span><span style="color:#A9A7A0">{{ a.u }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isProof }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ goFeed }}" style="font-size:15px;color:#A9A7A0;cursor:pointer;margin-bottom:18px" style-hover="color:#F1EFE8">Back to feed</div>
+      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px">Proof Stance / verified onchain</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Memecoin</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Monad</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">30d window / 21d left</span></div>
+            <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:50px;line-height:1.02;font-weight:800;letter-spacing:-0.035em">$GLOOP to 60M MC.<br>Not selling below 20M.</h1>
+            <div style="display:flex;align-items:center;gap:10px;font-size:15px;flex-wrap:wrap"><span style="width:28px;height:28px;border-radius:7px;background:#FF8A3D;color:#0B0B0F;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">KT</span><span style="font-weight:700">@kelechi_trench</span><span style="color:#A9A7A0">/ Caller Score A- / Monad verified</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));background:#15151C;border:1px solid #24242C;border-radius:16px;overflow:hidden">
+            <div style="padding:18px;border-right:1px solid #24242C"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">ENTRY MC</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;margin-top:6px">$1.2M</div></div>
+            <div style="padding:18px;border-right:1px solid #24242C"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">CURRENT MC</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;margin-top:6px;color:#FF8A3D">$9.8M</div></div>
+            <div style="padding:18px;border-right:1px solid #24242C"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">PEAK SINCE ENTRY</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;margin-top:6px">$14.1M</div></div>
+            <div style="padding:18px;border-right:1px solid #24242C"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">LIVE PNL</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;margin-top:6px;color:#FF8A3D">+716%</div></div>
+            <div style="padding:18px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0;letter-spacing:0.06em">POSITION</div><div style="font-family:'JetBrains Mono',monospace;font-size:24px;margin-top:6px">$5k-10k</div></div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px">Market cap since entry</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">markers = caller's onchain actions</span></div>
+            <svg viewBox="0 0 800 240" preserveAspectRatio="none" style="width:100%;height:240px;display:block;margin:16px 0 8px;overflow:visible">
+              <line x1="0" y1="18" x2="800" y2="18" style="stroke:#FF8A3D;stroke-width:1.5;stroke-dasharray:6 6;vector-effect:non-scaling-stroke"></line>
+              <text x="8" y="12" style="font-family:'JetBrains Mono',monospace;font-size:11px;fill:#FF8A3D">TARGET 60M</text>
+              <line x1="0" y1="140" x2="800" y2="140" style="stroke:#5B8CFF;stroke-width:1.5;stroke-dasharray:2 5;vector-effect:non-scaling-stroke"></line>
+              <text x="8" y="134" style="font-family:'JetBrains Mono',monospace;font-size:11px;fill:#5B8CFF">HOLD FLOOR 20M</text>
+              <polyline points="0,226 20,224 70,222 140,214 210,204 270,190 350,166 420,148 490,136 560,158 630,170 700,166 800,172" style="fill:none;stroke:#F1EFE8;stroke-width:2.5;stroke-linejoin:round;vector-effect:non-scaling-stroke"></polyline>
+              <circle cx="20" cy="224" r="7" fill="#FF8A3D"></circle>
+              <text x="34" y="214" style="font-family:'JetBrains Mono',monospace;font-size:11px;fill:#F1EFE8">BUY</text>
+              <circle cx="210" cy="204" r="7" fill="#FF8A3D"></circle>
+              <text x="224" y="194" style="font-family:'JetBrains Mono',monospace;font-size:11px;fill:#F1EFE8">ADD</text>
+              <rect x="633" y="160" width="14" height="14" fill="#5B8CFF"></rect>
+              <text x="652" y="190" style="font-family:'JetBrains Mono',monospace;font-size:11px;fill:#F1EFE8">TRIM 20%</text>
+            </svg>
+            <div style="font-size:14px;color:#A9A7A0;margin:10px 0">Progress to target</div>
+            <div style="height:8px;border-radius:99px;background:#24242C;overflow:hidden"><div style="width:16%;height:100%;background:#FF8A3D"></div></div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px 24px 10px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px;margin-bottom:8px">Onchain position log</div>
+            <sc-for list="{{ posLog }}" as="p" hint-placeholder-count="5">
+              <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:10px;padding:14px 0;border-top:1px solid #24242C;font-family:'JetBrains Mono',monospace;font-size:14px">
+                <span style="color:{{ p.c }}">{{ p.a }}</span><span style="color:#A9A7A0">{{ p.mc }}</span><span style="color:#A9A7A0">{{ p.t }}</span><span style="text-align:right;color:{{ p.rc }}">{{ p.r }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px">
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.06em">SAID VS DID</div>
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:30px;letter-spacing:-0.02em;margin-bottom:6px">Held as promised</div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Said</span><span>Hold above 20M</span></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Did</span><span>Trimmed 20% at 11.6M</span></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Verdict</span><span style="color:#FF8A3D">Took profit, core held</span></div>
+            </div>
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#5B8CFF;letter-spacing:0.06em">TRENCH CHECK</div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Front-run gap</span><span>Bought 2d before post</span></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Dump detector</span><span style="color:#FF8A3D">Clean</span></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Hidden exits</span><span style="color:#FF8A3D">None found</span></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Insider label</span><span>Not linked to deployer</span></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Top 10 holders</span><span>31% supply</span></div>
+            </div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px;margin-bottom:8px">Thesis from the caller</div>
+            <p style="margin:0;font-size:17px;line-height:1.6;color:#D6D4CC">Strong meme, organic holder growth, and the dev renounced early. I think it's the cleanest community coin this month. Holding the core until 20M at minimum.</p>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:20px;margin-bottom:16px">Other open Proof Stances by @kelechi_trench</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+              <div style="border:1px solid #2A2A33;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:6px"><span style="font-weight:700;font-size:17px">ETH long 5x</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">Entry 4,210 / Liq 3,420 / margin healthy</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">+22.4%</span></div>
+              <div style="border:1px solid #2A2A33;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:6px"><span style="font-weight:700;font-size:17px">$MOGGY 100x call</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">Entry MC $400k / target $40M</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#5B8CFF">-38%</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:0 1 340px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Will this call hit 60M?</div>
+            <div style="display:flex;height:8px;border-radius:99px;overflow:hidden"><div style="width:27%;background:#FF8A3D"></div><div style="flex:1;background:#5B8CFF"></div></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:13px"><span style="color:#FF8A3D">BACK 27%</span><span style="color:#5B8CFF">FADE 73%</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <button onClick="{{ proofBack }}" style="height:48px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Back 0.27</button>
+              <button onClick="{{ proofFade }}" style="height:48px;border:0;border-radius:10px;background:#5B8CFF;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#7AA1FF">Fade 0.73</button>
+            </div>
+            <span style="font-size:13px;color:#A9A7A0">Resolves automatically from DEX price data.</span>
+          </div>
+          <div style="background:#1A130C;border:1px solid #3A2512;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Tail this trade</div>
+            <p style="margin:0;font-size:15px;line-height:1.5;color:#D6D4CC">Buy $GLOOP inside Stance. Exit alerts switch on automatically, so you know the second the caller sells.</p>
+            <span style="font-size:14px;color:#A9A7A0">Amount</span>
+            <input value="{{ tailAmt }}" onChange="{{ onTailAmt }}" style="height:48px;padding:0 16px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-family:'JetBrains Mono',monospace;font-size:15px;outline:none">
+            <button onClick="{{ tail }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Tail with alerts</button>
+            <span style="font-size:13px;color:#A9A7A0">Routed via best onchain liquidity. Not financial advice.</span>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Caller Score</span><span style="font-family:'JetBrains Mono',monospace;font-size:26px;color:#FF8A3D">A-</span></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Verified PnL (90d)</span><span>+184%</span></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Target hit rate</span><span>41%</span></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Hold integrity</span><span>88%</span></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Follower safety</span><span style="color:#FF8A3D">High</span></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Liquidations</span><span>2</span></div>
+            <button onClick="{{ goReceipts }}" style="margin-top:8px;height:46px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer" style-hover="background:#1C1C23">View receipts</button>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:10px">Tailing now</div>
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-family:'JetBrains Mono',monospace;font-size:24px">{{ tailing }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#A9A7A0">wallets / {{ tailVol }}</span></div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isCreate }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin:10px 0 8px;font-family:'Bricolage Grotesque',sans-serif;font-size:54px;font-weight:800;letter-spacing:-0.035em">Take a stance</h1>
+      <p style="margin:0 0 24px;font-size:18px;color:#A9A7A0">Pick a type. Paste a link and AI drafts it for you, or write your own.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:26px">
+        <sc-for list="{{ types }}" as="t" hint-placeholder-count="6">
+          <div onClick="{{ t.onClick }}" style="padding:16px 18px;border-radius:12px;border:1px solid {{ t.border }};background:{{ t.bg }};cursor:pointer;display:flex;flex-direction:column;gap:4px">
+            <span style="font-weight:700;font-size:17px;color:{{ t.titleColor }}">{{ t.title }}</span><span style="font-size:14px;color:{{ t.subColor }}">{{ t.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:15px;color:#A9A7A0">AI drafter: paste a tweet, video, article or just type</span>
+            <div style="display:flex;gap:10px">
+              <input value="{{ draftLink }}" onChange="{{ onDraftLink }}" style="flex:1;min-width:0;height:52px;padding:0 16px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none">
+              <button onClick="{{ draftStance }}" style="height:52px;padding:0 20px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">Draft stance</button>
+            </div>
+            <span style="font-size:13px;color:#A9A7A0">Original author gets credited and can claim a share of fees.</span>
+          </div>
+          <sc-if value="{{ isProofType }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#15151C;border:1px solid #3A2512;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.06em">ONCHAIN POSITION</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <button onClick="{{ modeBuy }}" style="height:48px;border-radius:10px;border:1px solid {{ buyBorder }};background:{{ buyBg }};color:{{ buyColor }};font-weight:600;font-size:16px;cursor:pointer">Stance the buy</button>
+              <button onClick="{{ modeAttach }}" style="height:48px;border-radius:10px;border:1px solid {{ attBorder }};background:{{ attBg }};color:{{ attColor }};font-weight:600;font-size:16px;cursor:pointer">Attach existing trade</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px">
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Wallet<select style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px"><option>Main / 0x4b...91e (Monad)</option><option>Trading / 0x7fa...k2p (Monad)</option></select></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Token or market<input value="{{ token }}" onChange="{{ onToken }}" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Buy amount<input value="250 MON" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+            </div>
+            <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0;max-width:290px">Leverage (perps only)<input value="Spot" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.06em;margin-top:6px">THESIS TARGETS</span>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px">
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Market cap target<input value="60,000,000" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Or multiple<input value="50x" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Timeframe<input value="30 days" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Hold until MC<input value="20,000,000" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+            </div>
+            <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Show position size as<select style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px"><option>Size band ($5k-10k)</option><option>Exact size</option><option>Hidden</option></select></label>
+          </div>
+          </sc-if>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px">
+            <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Your stance<textarea value="{{ stanceText }}" onChange="{{ onStanceText }}" rows="3" style="padding:14px 16px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:17px;outline:none;resize:vertical;line-height:1.4"></textarea></label>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px">
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Topic<select value="{{ topic }}" onChange="{{ onTopic }}" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px"><option>Crypto</option><option>Music</option><option>Football</option><option>Tech</option><option>Culture</option></select></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Resolves<input value="30 days from entry" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Resolution<select style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px"><option>Automatic from DEX data</option><option>Oracle or data feed</option><option>Creator proposal + jury</option></select></label>
+            </div>
+            <div style="background:#0F1424;border:1px solid #233466;border-radius:10px;padding:16px;font-size:16px"><span style="color:#5B8CFF;font-weight:700">Criteria check:</span> {{ criteria }}</div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px">
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Your side<select value="{{ createSide }}" onChange="{{ onCreateSide }}" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px"><option>Back</option><option>Fade</option></select></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Opening stake<input value="{{ stake }}" onChange="{{ onStake }}" style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px;outline:none"></label>
+              <label style="display:flex;flex-direction:column;gap:8px;font-size:15px;color:#A9A7A0">Mode<select style="height:50px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:16px"><option>Stance Real (USDC)</option><option>Stance Play (points)</option></select></label>
+            </div>
+            <div onClick="{{ toggleMm }}" style="display:flex;align-items:center;gap:12px;cursor:pointer;font-size:16px"><span style="width:22px;height:22px;border-radius:5px;border:1px solid #FF8A3D;background:{{ mmBg }};color:#0B0B0F;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">{{ mmMark }}</span>Let the market maker agent seed the other side</div>
+            <div onClick="{{ toggleTr }}" style="display:flex;align-items:center;gap:12px;cursor:pointer;font-size:16px"><span style="width:22px;height:22px;border-radius:5px;border:1px solid #FF8A3D;background:{{ trBg }};color:#0B0B0F;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700">{{ trMark }}</span>Open tribe rooms for both sides</div>
+          </div>
+        </div>
+        <div style="flex:0 1 380px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0;letter-spacing:0.06em">PREVIEW</span>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;gap:8px"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px">{{ createType }}</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">{{ topic }}</span></div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;text-wrap:pretty">{{ stanceText }}</div>
+            <div style="display:flex;height:6px;border-radius:99px;overflow:hidden"><div style="width:50%;background:#FF8A3D"></div><div style="flex:1;background:#5B8CFF"></div></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:13px"><span style="color:#FF8A3D">BACK 0.50</span><span style="color:#5B8CFF">FADE 0.50</span></div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;font-family:'JetBrains Mono',monospace;font-size:14px">
+            <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Creation fee</span><span>$0.50</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Creator share of fees</span><span>1.0%</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Gas</span><span>Sponsored</span></div>
+          </div>
+          <button onClick="{{ publish }}" style="height:58px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:19px;cursor:pointer" style-hover="background:#FF9D5C">Publish stance</button>
+          <button onClick="{{ goFeed }}" style="height:54px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:17px;cursor:pointer" style-hover="background:#1C1C23">Cancel</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isReceipts }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:30px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+        <div style="width:104px;height:104px;border-radius:20px;background:#FF8A3D;color:#0B0B0F;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:38px;display:flex;align-items:center;justify-content:center">AO</div>
+        <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;letter-spacing:-0.03em;line-height:1">@ada.calls</div>
+          <div style="font-size:18px;color:#A9A7A0">Crypto and football. Early or not at all.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px">Top 2% calibration</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Verified caller</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">2 Monad wallets</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Tribe winner x7</span></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onClick="{{ toggleFollow }}" style="height:48px;padding:0 20px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">{{ followLabel }}</button>
+          <button onClick="{{ goTribes }}" style="height:48px;padding:0 20px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">Challenge to duel</button>
+          <button onClick="{{ shareReceipts }}" style="height:48px;padding:0 20px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Share receipts</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:20px">
+        <sc-for list="{{ profileStats }}" as="s" hint-placeholder-count="6">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:14px;color:#A9A7A0">{{ s.label }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:36px;color:{{ s.color }}">{{ s.val }}</span><span style="font-size:14px;color:#A9A7A0">{{ s.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px 24px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+              <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px">Receipts</span>
+              <div style="display:flex;gap:6px">
+                <sc-for list="{{ rFilters }}" as="f" hint-placeholder-count="4">
+                  <button onClick="{{ f.onClick }}" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid {{ f.border }};background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">{{ f.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <sc-for list="{{ receipts }}" as="r" hint-placeholder-count="5">
+              <div onClick="{{ r.onClick }}" style="display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid #24242C;cursor:pointer">
+                <span style="width:92px;flex:0 0 92px;text-align:center;border:1px solid {{ r.bc }};color:{{ r.bt }};border-radius:999px;padding:4px 0;font-size:13px">{{ r.badge }}</span>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font-weight:700;font-size:17px">{{ r.title }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">{{ r.meta }}</span></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:17px;color:{{ r.vc }}">{{ r.val }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#13121C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#5B8CFF;letter-spacing:0.06em">STANCE COACH</span>
+            <p style="margin:0;font-size:17px">You're most accurate on crypto calls made more than a week before consensus.</p>
+            <p style="margin:0;font-size:17px">You exit Back positions about 3 days too early on average, which cost you yield.</p>
+            <p style="margin:0;font-size:17px">Your football calls drop sharply when you take more than 3 in one weekend.</p>
+            <span style="font-size:13px;color:#A9A7A0">Private to you.</span>
+          </div>
+        </div>
+        <div style="flex:0 1 350px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#F1EFE8;color:#0B0B0F;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px">stance</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em">RECEIPTS CARD</span></div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px;letter-spacing:-0.03em;margin-top:10px">@ada.calls</div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:14px">Top 2% / Crypto</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div style="background:#0B0B0F;border-radius:10px;padding:12px 14px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#F1EFE8;letter-spacing:0.06em">BEST CALL</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#FF8A3D;margin-top:4px">+34x</div></div>
+              <div style="background:#0B0B0F;border-radius:10px;padding:12px 14px"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#F1EFE8;letter-spacing:0.06em">CALIBRATION</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#F1EFE8;margin-top:4px">0.87</div></div>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px">stance.click/ada.calls</span>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Expertise by topic</div>
+            <sc-for list="{{ expertise }}" as="e" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between;font-size:16px"><span>{{ e.t }}</span><span style="font-family:'JetBrains Mono',monospace">{{ e.v }}</span></div>
+                <div style="height:6px;border-radius:99px;background:#24242C;overflow:hidden"><div style="height:100%;width:{{ e.w }};background:#FF8A3D"></div></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:4px">Linked wallets</div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span>0x4b...91e</span><span style="color:#A9A7A0">Monad</span></div>
+            <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span>0x7fa...k2p</span><span style="color:#A9A7A0">Monad / trading</span></div>
+            <span style="font-size:13px;color:#A9A7A0">More linked wallets means a higher verification tier.</span>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:8px">Portable reputation</div>
+            <p style="margin:0;font-size:15px;line-height:1.5;color:#A9A7A0">Scores are issued as onchain attestations. Any app can query them with permission.</p>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="background:#13131B;border:1px solid #24242C;border-radius:16px;padding:26px 30px;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="align-self:stretch;display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;gap:8px"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:14px;display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:50%;background:#FF8A3D"></span>LIVE</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:14px;color:#D6D4CC">Football</span></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#A9A7A0">{{ inRoom }} in room</span>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:24px;margin-top:6px;align-self:stretch">
+              <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:clamp(20px,2.4vw,32px);text-align:right">Home FC</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:clamp(44px,5vw,72px);line-height:1;white-space:nowrap">1 : 1</span>
+              <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:clamp(20px,2.4vw,32px)">Away United</span>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:18px;color:#A9A7A0">{{ minute }}' / second half</span>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.03em;margin-top:18px;text-align:center">Home side scores the next goal</div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:26px 30px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+              <div><div style="font-size:16px;color:#A9A7A0">Live conviction</div><div style="display:flex;align-items:baseline;gap:18px"><span style="font-family:'JetBrains Mono',monospace;font-size:60px;color:#FF8A3D">{{ liveConv }}%</span><span style="font-family:'JetBrains Mono',monospace;font-size:18px">home next</span></div></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#A9A7A0;padding-bottom:12px">updated every block</span>
+            </div>
+            <div style="display:flex;height:16px;border-radius:99px;overflow:hidden;margin:14px 0 28px"><div style="width:{{ liveConvW }};background:#FF8A3D;transition:width .6s"></div><div style="flex:1;background:#5B8CFF"></div></div>
+            <svg viewBox="0 0 800 180" preserveAspectRatio="none" style="width:100%;height:180px;display:block;overflow:visible">
+              <line x1="0" y1="90" x2="800" y2="90" style="stroke:#2A2A33;stroke-width:1;stroke-dasharray:4 6;vector-effect:non-scaling-stroke"></line>
+              <line x1="360" y1="0" x2="360" y2="180" style="stroke:#5B8CFF;stroke-width:1;stroke-dasharray:3 4;vector-effect:non-scaling-stroke"></line>
+              <text x="368" y="12" style="font-family:'JetBrains Mono',monospace;font-size:12px;fill:#5B8CFF">away shot on target</text>
+              <polyline points="{{ livePts }}" style="fill:none;stroke:#FF8A3D;stroke-width:3;stroke-linejoin:round;vector-effect:non-scaling-stroke"></polyline>
+            </svg>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:26px 30px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
+              <div><div style="font-size:16px;color:#A9A7A0">Your position</div><div style="font-family:'JetBrains Mono',monospace;font-size:30px;color:#FF8A3D;margin-top:4px">{{ livePosLabel }}</div></div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:15px;color:#A9A7A0">flip fee 1% / paid to holders</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <button onClick="{{ liveHome }}" style="height:72px;border-radius:12px;border:1px solid {{ homeBorder }};background:{{ homeBg }};color:{{ homeColor }};font-weight:600;font-size:21px;cursor:pointer">Home next {{ homePrice }}</button>
+              <button onClick="{{ liveNot }}" style="height:72px;border-radius:12px;border:1px solid {{ notBorder }};background:{{ notBg }};color:{{ notColor }};font-weight:600;font-size:21px;cursor:pointer">Not home {{ notPrice }}</button>
+            </div>
+            <button onClick="{{ flipSide }}" style="height:62px;border:1px solid #33333D;border-radius:12px;background:transparent;color:#F1EFE8;font-weight:600;font-size:20px;cursor:pointer" style-hover="background:#1C1C23">Flip side</button>
+          </div>
+        </div>
+        <div style="flex:0 1 360px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Room chat</span><span style="font-size:13px;color:#A9A7A0">sides shown</span></div>
+            <div style="display:flex;flex-direction:column;gap:14px;max-height:360px;overflow:auto">
+              <sc-for list="{{ chat }}" as="m" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="display:flex;align-items:baseline;gap:6px"><span style="font-weight:700;color:{{ m.c }};font-size:16px">{{ m.u }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ m.c }}">{{ m.side }}</span></div>
+                  <span style="font-size:15px;line-height:1.45;font-family:{{ m.font }};color:{{ m.tc }}">{{ m.t }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <input value="{{ chatDraft }}" onChange="{{ onChatDraft }}" onKeyDown="{{ onChatKey }}" placeholder="Say something to your side" style="height:50px;padding:0 16px;border-radius:10px;border:1px solid #2A2A33;background:#0F0F14;color:#F1EFE8;font-size:15px;outline:none">
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;margin-bottom:4px">More live rooms</div>
+            <sc-for list="{{ rooms }}" as="r" hint-placeholder-count="3">
+              <div onClick="{{ r.onClick }}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;background:#0F0F14;border-radius:10px;padding:14px 16px;cursor:pointer;font-size:16px" style-hover="background:#1C1C23"><span>{{ r.t }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">{{ r.n }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isTribes }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.12em">TRIBES</div>
+      <h1 style="margin:6px 0 20px;font-family:'Bricolage Grotesque',sans-serif;font-size:44px;font-weight:800;letter-spacing:-0.035em">Afrobeats Backers</h1>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-bottom:56px">
+        <div style="flex:1 1 560px;min-width:0;background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px">BACK side war room</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">771 members</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Entry: hold a Back position</span></div>
+          <sc-for list="{{ tribeMsgs }}" as="m" hint-placeholder-count="3">
+            <div style="background:#1B1B22;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:baseline;gap:6px"><span style="font-weight:700;font-size:15px">{{ m.u }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0">{{ m.role }}</span></div>
+              <span style="font-size:15px">{{ m.t }}</span>
+            </div>
+          </sc-for>
+          <input value="{{ tribeDraft }}" onChange="{{ onTribeDraft }}" onKeyDown="{{ onTribeKey }}" placeholder="Message the Backers" style="height:48px;padding:0 16px;border-radius:10px;border:1px solid #2A2A33;background:#0F0F14;color:#F1EFE8;font-size:15px;outline:none">
+        </div>
+        <div style="flex:0 1 300px;min-width:260px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px"><div style="font-size:14px;color:#A9A7A0">Tribe strength</div><div style="font-family:'JetBrains Mono',monospace;font-size:34px;color:#FF8A3D;margin:4px 0">64%</div><div style="font-size:14px;color:#A9A7A0">vs Chart Faders 36%</div></div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px"><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:18px">Hall of fame</div><span style="font-size:15px">Afrobeats at the Grammys / <span style="color:#FF8A3D">won</span></span><span style="font-size:15px">Burna world tour sellout / <span style="color:#FF8A3D">won</span></span></div>
+        </div>
+      </div>
+
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.12em">DUELS</div>
+      <h2 style="margin:6px 0 20px;font-family:'Bricolage Grotesque',sans-serif;font-size:44px;font-weight:800;letter-spacing:-0.035em">1v1. Escrowed. Settled.</h2>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch;margin-bottom:56px">
+        <div style="flex:1 1 520px;min-width:0;background:#15151C;border:1px solid #24242C;border-radius:16px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:18px">
+          <div style="display:flex;align-items:center;justify-content:space-around;align-self:stretch">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="width:68px;height:68px;border-radius:14px;background:#FF8A3D;color:#0B0B0F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px">AO</span><span style="font-weight:700;font-size:17px">@ada.calls</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">ETH wins</span></div>
+            <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px">VS</span>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><span style="width:68px;height:68px;border-radius:14px;background:#5B8CFF;color:#0B0B0F;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:18px">OB</span><span style="font-weight:700;font-size:17px">@0xbisi</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#5B8CFF">SOL wins</span></div>
+          </div>
+          <div style="font-size:26px;font-weight:500">ETH outperforms SOL this quarter</div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-self:stretch">
+            <div style="background:#0F0F14;border-radius:10px;padding:14px;text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0">ESCROW</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;margin-top:4px">$300</div></div>
+            <div style="background:#0F0F14;border-radius:10px;padding:14px;text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0">JUDGE</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;margin-top:4px">Price oracle</div></div>
+            <div style="background:#0F0F14;border-radius:10px;padding:14px;text-align:center"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#A9A7A0">ENDS</div><div style="font-family:'JetBrains Mono',monospace;font-size:15px;margin-top:4px">Dec 31</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-self:stretch">
+            <button onClick="{{ sideBet }}" style="height:46px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer" style-hover="background:#1C1C23">Spectate and side-bet</button>
+            <button onClick="{{ shareDuel }}" style="height:46px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer" style-hover="background:#1C1C23">Share duel</button>
+          </div>
+        </div>
+        <div style="flex:0 1 360px;min-width:280px;background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Start a duel</div>
+          <label style="display:flex;flex-direction:column;gap:8px;font-size:14px;color:#A9A7A0">Challenge<input value="{{ duelFriend }}" onChange="{{ onDuelFriend }}" placeholder="@friend" style="height:48px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:15px;outline:none"></label>
+          <label style="display:flex;flex-direction:column;gap:8px;font-size:14px;color:#A9A7A0">The take<input value="{{ duelTake }}" onChange="{{ onDuelTake }}" placeholder="Your claim here" style="height:48px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:15px;outline:none"></label>
+          <label style="display:flex;flex-direction:column;gap:8px;font-size:14px;color:#A9A7A0">Judge<select style="height:48px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:15px"><option>Mutual friend</option><option>Price oracle</option><option>AI juror</option></select></label>
+          <button onClick="{{ sendChallenge }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer;margin-top:4px" style-hover="background:#FF9D5C">Send challenge</button>
+        </div>
+      </div>
+
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.12em">CHANGE MY MIND</div>
+      <h2 style="margin:6px 0 20px;font-family:'Bricolage Grotesque',sans-serif;font-size:44px;font-weight:800;letter-spacing:-0.035em">Get paid to persuade.</h2>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch">
+        <div style="flex:1 1 520px;min-width:0;background:#13131B;border:1px solid #24242C;border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">@ada.calls</span><span style="border:1px solid #FF8A3D;color:#FF8A3D;border-radius:999px;padding:4px 12px;font-size:13px">Bounty $500</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">9 days left</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">$2 per argument</span></div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:32px;letter-spacing:-0.025em">"Most L2s will be irrelevant in 3 years."</div>
+          <div style="font-weight:700;font-size:16px">Top arguments</div>
+          <sc-for list="{{ args }}" as="a" hint-placeholder-count="2">
+            <div style="border:1px solid #2A2A33;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:15px">{{ a.u }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0">owner reaction: {{ a.r }}</span></div>
+              <span style="font-size:16px;line-height:1.5">{{ a.t }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="flex:0 1 360px;min-width:280px;background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Submit an argument</div>
+          <textarea value="{{ argDraft }}" onChange="{{ onArgDraft }}" placeholder="Make your case" rows="5" style="padding:14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:15px;outline:none;resize:vertical"></textarea>
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">Entry fee</span><span>$2</span></div>
+          <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span style="color:#A9A7A0">If owner flips, you win</span><span style="color:#FF8A3D">$500 + fees</span></div>
+          <button onClick="{{ submitArg }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Submit argument</button>
+          <span style="font-size:13px;color:#A9A7A0">Persuaders earn a "minds changed" score on their receipts.</span>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isWallet }}" hint-placeholder-val="{{ false }}">
+      <h1 style="margin:10px 0 6px;font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;letter-spacing:-0.035em;line-height:1.02">Wallet</h1>
+      <p style="margin:0 0 22px;font-size:17px;color:#A9A7A0">One balance for every stance. No seed phrase, and gas is sponsored.</p>
+      <sc-if value="{{ geoBlocked }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#0F1424;border:1px solid #233466;border-radius:12px;padding:16px 18px;margin-bottom:20px;font-size:15px;line-height:1.5"><span style="color:#5B8CFF;font-weight:700">Stance Real isn't available in your region.</span> You can keep playing with points. Your Receipts and calibration count the same.</div>
+      </sc-if>
+      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;color:#A9A7A0">USDC balance</span><span style="font-family:'JetBrains Mono',monospace;font-size:38px">${{ balance }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">+ $3.12 conviction yield today</span></div>
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;color:#A9A7A0">Play points</span><span style="font-family:'JetBrains Mono',monospace;font-size:38px">{{ points }}</span><span style="font-size:13px;color:#A9A7A0">100 points = $1 of stance size</span></div>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Mode</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:#0F0F14;border-radius:12px">
+              <button onClick="{{ setPlay }}" style="height:46px;border:0;border-radius:9px;background:{{ playBg }};color:{{ playColor }};font-weight:600;font-size:15px;cursor:pointer">Stance Play</button>
+              <button onClick="{{ setReal }}" style="height:46px;border:0;border-radius:9px;background:{{ realBg }};color:{{ realColor }};opacity:{{ realOpacity }};font-weight:600;font-size:15px;cursor:pointer">Stance Real</button>
+            </div>
+            <span style="font-size:14px;color:#A9A7A0;line-height:1.5">{{ modeNote }}</span>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Add funds</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ fundMethods }}" as="m" hint-placeholder-count="3"><button onClick="{{ m.onClick }}" style="height:40px;padding:0 16px;border-radius:999px;border:1px solid {{ m.border }};background:{{ m.bg }};color:{{ m.color }};font-size:14px;cursor:pointer">{{ m.label }}</button></sc-for>
+            </div>
+            <sc-if value="{{ isReceive }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:220px;background:#0B0B0F;border:1px solid #2A2A33;border-radius:10px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:14px;word-break:break-all">0x4b1f...a7c2...91e / Monad</span><button onClick="{{ copyAddr }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">Copy</button></div>
+              <span style="font-size:13px;color:#A9A7A0">Send USDC or AUSD on Monad. This build does not route from other chains.</span>
+            </sc-if>
+            <sc-if value="{{ notReceive }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+                <sc-for list="{{ fundAmts }}" as="a" hint-placeholder-count="4"><button onClick="{{ a.onClick }}" style="height:44px;border-radius:10px;border:1px solid #2F2F38;background:{{ a.bg }};color:{{ a.color }};font-weight:600;font-size:15px;cursor:pointer">{{ a.label }}</button></sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;font-family:'JetBrains Mono',monospace;font-size:14px">
+                <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Route</span><span>{{ fundRoute }}</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Fee</span><span>{{ fundFee }}</span></div>
+                <div style="display:flex;justify-content:space-between"><span style="color:#A9A7A0">Arrives</span><span>{{ fundEta }}</span></div>
+              </div>
+              <button onClick="{{ addFunds }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer">{{ addFundsLabel }}</button>
+            </sc-if>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Withdraw</div>
+            <div style="display:flex;gap:10px"><input value="{{ withdrawAmt }}" onChange="{{ onWithdrawAmt }}" placeholder="Amount in USDC" style="height:48px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:15px;outline:none;flex:1;min-width:0;font-family:'JetBrains Mono',monospace"><button onClick="{{ withdraw }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">Withdraw</button></div>
+            <span style="font-size:13px;color:#A9A7A0">Withdrawals go to your sign-in wallet or any linked wallet.</span>
+          </div>
+        </div>
+        <div style="flex:0 1 360px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Linked wallets</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FF8A3D">{{ tierLabel }}</span></div>
+            <sc-for list="{{ linkedWallets }}" as="w" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:14px"><span>{{ w.addr }}</span><span style="color:#A9A7A0">{{ w.chain }}</span></div></sc-for>
+            <div style="height:6px;border-radius:99px;background:#24242C;overflow:hidden"><div style="height:100%;width:{{ tierW }};background:#FF8A3D;transition:width .4s"></div></div>
+            <span style="font-size:13px;color:#A9A7A0">More linked wallets means a higher verification tier.</span>
+            <button onClick="{{ linkWallet }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">{{ linkLabel }}</button>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">History</div>
+            <sc-for list="{{ walletTx }}" as="t" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:15px">{{ t.label }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0">{{ t.time }}</span></div><span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:{{ t.c }}">{{ t.amt }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isAlerts }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+        <div><h1 style="margin:10px 0 6px;font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;letter-spacing:-0.035em;line-height:1.02">Alerts</h1><p style="margin:0;font-size:17px;color:#A9A7A0">Exit alerts fire the second a caller you track trims or sells.</p></div>
+        <button onClick="{{ markAllRead }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">Mark all read</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+        <sc-for list="{{ alertFilters }}" as="f" hint-placeholder-count="5"><button onClick="{{ f.onClick }}" style="height:40px;padding:0 16px;border-radius:999px;border:1px solid {{ f.border }};background:{{ f.bg }};color:{{ f.color }};font-size:14px;cursor:pointer">{{ f.label }}</button></sc-for>
+      </div>
+      <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:4px 24px">
+        <sc-for list="{{ alertsList }}" as="a" hint-placeholder-count="5">
+          <div onClick="{{ a.onClick }}" style="display:flex;align-items:center;gap:16px;padding:18px 0;border-top:1px solid {{ a.border }};cursor:pointer;flex-wrap:wrap">
+            <span style="width:8px;height:8px;border-radius:50%;background:{{ a.dot }}"></span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;width:84px;color:{{ a.c }};letter-spacing:0.06em">{{ a.kind }}</span>
+            <span style="flex:1;min-width:220px;font-size:16px;color:{{ a.tc }}">{{ a.text }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">{{ a.time }}</span>
+            <span style="font-size:14px;color:#FF8A3D">Open</span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ alertsEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:48px 0;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center"><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;font-size:22px">Nothing here.</span><span style="font-size:15px;color:#A9A7A0">{{ alertsEmptyMsg }}</span></div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isRes }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ goReceipts }}" style="font-size:15px;color:#A9A7A0;cursor:pointer;margin-bottom:18px" style-hover="color:#F1EFE8">Back to receipts</div>
+      <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="border:1px solid {{ res.statusColor }};color:{{ res.statusColor }};border-radius:999px;padding:4px 12px;font-size:13px">{{ res.status }}</span><sc-for list="{{ resTags }}" as="t" hint-placeholder-count="2"><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">{{ t }}</span></sc-for></div>
+            <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:50px;line-height:1.02;font-weight:800;letter-spacing:-0.035em">{{ res.title }}</h1>
+            <span style="font-size:16px;color:#A9A7A0">{{ res.meta }}</span>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:14px;color:#A9A7A0">Outcome</span>
+            <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.03em;color:{{ res.verdictColor }};margin-bottom:8px">{{ res.verdict }}</span>
+            <sc-for list="{{ resRows }}" as="x" hint-placeholder-count="5"><div style="display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #24242C;font-family:'JetBrains Mono',monospace;font-size:15px"><span style="color:#A9A7A0">{{ x.k }}</span><span style="color:{{ x.c }}">{{ x.v }}</span></div></sc-for>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;font-size:20px;margin-bottom:18px">Resolution path</div>
+            <sc-for list="{{ resSteps }}" as="p" hint-placeholder-count="5">
+              <div style="display:flex;gap:16px">
+                <div style="display:flex;flex-direction:column;align-items:center"><span style="width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:2px solid {{ p.dotBorder }};background:{{ p.dotBg }}"></span><span style="width:2px;flex:1;min-height:30px;background:{{ p.line }}"></span></div>
+                <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:18px;margin-top:-3px"><span style="font-weight:600;font-size:16px;color:{{ p.lc }}">{{ p.l }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">{{ p.d }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:0 1 360px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Your position</div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:18px">{{ res.position }}</span>
+            <sc-if value="{{ resClaim }}" hint-placeholder-val="{{ false }}"><button onClick="{{ claim }}" style="height:52px;border:0;border-radius:10px;background:{{ claimBg }};color:#0B0B0F;font-weight:600;font-size:17px;cursor:pointer">{{ claimLabel }}</button></sc-if>
+            <sc-if value="{{ resDispute }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ appeal }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer">{{ appealLabel }}</button>
+              <button onClick="{{ acceptRes }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">Accept the proposal</button>
+              <span style="font-size:13px;color:#A9A7A0;line-height:1.5">Appeals go to staked human jurors after the AI juror's first pass.</span>
+            </sc-if>
+            <sc-if value="{{ resNone }}" hint-placeholder-val="{{ false }}"><span style="font-size:14px;color:#A9A7A0;line-height:1.5">Nothing to claim. Liquidations stay public on Receipts.</span></sc-if>
+          </div>
+          <div style="background:#1A130C;border:1px solid #3A2512;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.06em">RECEIPTS</span>
+            <span style="font-size:15px;line-height:1.5">Every resolved stance is written permanently to each participant's Receipts, right or wrong.</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ goFeed }}" style="font-size:15px;color:#A9A7A0;cursor:pointer;margin-bottom:18px" style-hover="color:#F1EFE8">Back to feed</div>
+      <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:30px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+        <div style="width:96px;height:96px;border-radius:20px;background:{{ pr.color }};color:#0B0B0F;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:34px;display:flex;align-items:center;justify-content:center">{{ pr.ini }}</div>
+        <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:42px;letter-spacing:-0.03em;line-height:1">{{ pr.handle }}</div>
+          <div style="font-size:18px;color:#A9A7A0">{{ pr.bio }}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><sc-for list="{{ prTags }}" as="t" hint-placeholder-count="3"><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">{{ t }}</span></sc-for></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onClick="{{ prFollow }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">{{ prFollowLabel }}</button>
+          <button onClick="{{ goTribes }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">Challenge to duel</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:20px">
+        <sc-for list="{{ prStats }}" as="x" hint-placeholder-count="4"><div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;color:#A9A7A0">{{ x.k }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:32px;color:{{ x.c }}">{{ x.v }}</span></div></sc-for>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:24px 24px 10px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px;font-size:22px;margin-bottom:10px">Recent calls</div>
+            <sc-for list="{{ prCalls }}" as="c" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid #24242C">
+                <span style="width:92px;flex:0 0 92px;text-align:center;border:1px solid {{ c.bc }};color:{{ c.bc }};border-radius:999px;padding:4px 0;font-size:13px">{{ c.badge }}</span>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font-weight:700;font-size:17px">{{ c.title }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">{{ c.meta }}</span></div>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:17px;color:{{ c.bc }}">{{ c.val }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:0 1 360px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Open calls</div>
+            <sc-for list="{{ prOpen }}" as="o" hint-placeholder-count="2"><div onClick="{{ o.onClick }}" style="background:#0F0F14;border-radius:10px;padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:4px" style-hover="background:#1C1C23"><span style="font-size:16px;font-weight:600">{{ o.t }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ o.c }}">{{ o.m }}</span></div></sc-for>
+          </div>
+          <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D;letter-spacing:0.06em">SAID VS DID</span>
+            <span style="font-size:16px;line-height:1.5">{{ pr.saidDid }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isTribe }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:{{ tr.sideColor }};letter-spacing:0.12em">TRIBES / {{ tr.side }} SIDE</div>
+      <h1 style="margin:10px 0 6px;font-family:'Bricolage Grotesque',sans-serif;font-size:48px;font-weight:800;letter-spacing:-0.035em;line-height:1.02;margin-bottom:20px">{{ tr.name }}</h1>
+      <sc-if value="{{ trLocked }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:40px 32px;max-width:640px;display:flex;flex-direction:column;gap:14px">
+          <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:28px;letter-spacing:-0.02em">This war room is for {{ tr.sideWord }} holders.</span>
+          <span style="font-size:16px;line-height:1.55;color:#A9A7A0">Hold a {{ tr.sideWord }} position on "{{ tr.stanceTitle }}" to get in. Reading the stance is free. Talking costs commitment.</span>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+            <button onClick="{{ joinTribe }}" style="height:50px;padding:0 22px;border:0;border-radius:10px;background:{{ tr.sideColor }};color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer">{{ joinLabel }}</button>
+            <button onClick="{{ trViewStance }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;height:50px">View the stance</button>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ trOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+          <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px;background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;gap:12px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><span style="border:1px solid {{ tr.sideColor }};color:{{ tr.sideColor }};border-radius:999px;padding:4px 12px;font-size:13px">{{ tr.side }} side war room</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">{{ tr.members }} members</span><span style="border:1px solid #2F2F38;border-radius:999px;padding:4px 12px;font-size:13px;color:#D6D4CC">Entry: hold a {{ tr.sideWord }} position</span></div>
+            <div style="background:#1A130C;border:1px solid #3A2512;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#FF8A3D;letter-spacing:0.08em">PINNED</span><span style="font-size:15px">{{ tr.pinned }}</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px;max-height:460px;overflow:auto">
+              <sc-for list="{{ trMsgs }}" as="m" hint-placeholder-count="4">
+                <div style="background:#1B1B22;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px">
+                  <div style="display:flex;align-items:baseline;gap:8px"><span style="font-weight:700;font-size:15px">{{ m.u }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0">{{ m.role }}</span></div>
+                  <span style="font-size:15px;line-height:1.45">{{ m.t }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <input value="{{ trDraft }}" onChange="{{ onTrDraft }}" onKeyDown="{{ onTrKey }}" placeholder="Message the room and press Enter" style="height:48px;padding:0 14px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-size:15px;outline:none;background:#0F0F14">
+          </div>
+          <div style="flex:0 1 360px;min-width:280px;display:flex;flex-direction:column;gap:18px">
+            <div onClick="{{ openRival }}" style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;cursor:pointer" style-hover="border-color:#33333D"><div style="font-size:14px;color:#A9A7A0">Tribe strength</div><div style="font-family:'JetBrains Mono',monospace;font-size:34px;color:{{ tr.sideColor }};margin:4px 0">{{ tr.strength }}%</div><div style="font-size:14px;color:#A9A7A0">vs {{ rivalName }} {{ rivalStrength }}%</div></div>
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:19px">Members</div>
+              <sc-for list="{{ trMembers }}" as="p" hint-placeholder-count="5"><div onClick="{{ p.onClick }}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer"><span style="font-size:15px">{{ p.u }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0">{{ p.m }}</span></div></sc-for>
+            </div>
+            <div onClick="{{ trViewStance }}" style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;cursor:pointer;display:flex;flex-direction:column;gap:6px" style-hover="border-color:#33333D"><span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#A9A7A0;letter-spacing:0.06em">THE STANCE</span><span style="font-size:16px;font-weight:600;line-height:1.4">{{ tr.stanceTitle }}</span></div>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+  </main>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(5,5,7,0.74);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onClick="{{ stop }}" style="background:#15151C;border:1px solid #2A2A33;border-radius:18px;padding:28px;max-width:440px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;box-shadow:0 30px 80px rgba(0,0,0,.6)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ modalKickerColor }};letter-spacing:0.1em">{{ modalKicker }}</span>
+        <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:28px;letter-spacing:-0.025em;line-height:1.1">{{ modalTitle }}</span>
+        <span style="font-size:16px;line-height:1.55;color:#A9A7A0">{{ modalBody }}</span>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+          <button onClick="{{ onModalPrimary }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer">{{ modalPrimary }}</button>
+          <sc-if value="{{ modalHasSecondary }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onModalSecondary }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer">{{ modalSecondary }}</button></sc-if>
+          <button onClick="{{ closeModal }}" style="height:40px;border:0;background:transparent;color:#A9A7A0;font-size:15px;cursor:pointer">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ shareOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeShare }}" style="position:fixed;inset:0;background:rgba(5,5,7,0.8);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div onClick="{{ stop }}" style="max-width:480px;width:100%;display:flex;flex-direction:column;gap:14px">
+        <div style="background:#F1EFE8;color:#0B0B0F;border-radius:20px;padding:30px;display:flex;flex-direction:column;gap:14px;aspect-ratio:1.2/1;box-sizing:border-box">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;align-items:center;gap:8px"><svg width="24" height="24" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#0B0B0F"></rect><line x1="11" y1="29" x2="25" y2="15" style="stroke:#F1EFE8;stroke-width:5;stroke-linecap:round"></line><circle cx="28" cy="12" r="5" fill="#FF8A3D"></circle></svg><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:22px">stance</span></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em">RECEIPTS CARD</span>
+          </div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:46px;letter-spacing:-0.035em;line-height:1;margin-top:auto">@ada.calls</div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:14px">Top 2% / Crypto / Tribe winner x7</span>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div style="background:#0B0B0F;border-radius:10px;padding:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#F1EFE8;letter-spacing:0.06em">BEST CALL</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#FF8A3D;margin-top:4px">+34x</div></div>
+            <div style="background:#0B0B0F;border-radius:10px;padding:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#F1EFE8;letter-spacing:0.06em">CALIBRATION</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#F1EFE8;margin-top:4px">0.87</div></div>
+            <div style="background:#0B0B0F;border-radius:10px;padding:12px"><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#F1EFE8;letter-spacing:0.06em">CONTRARIAN</div><div style="font-family:'JetBrains Mono',monospace;font-size:20px;color:#F1EFE8;margin-top:4px">38</div></div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:13px">stance.click/ada.calls</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+          <button onClick="{{ postX }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer">Post to X</button>
+          <button onClick="{{ copyShare }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;height:50px">Copy link</button>
+          <button onClick="{{ downloadShare }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;height:50px">Download</button>
+        </div>
+        <button onClick="{{ closeShare }}" style="height:40px;border:0;background:transparent;color:#A9A7A0;font-size:15px;cursor:pointer">Close</button>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#F1EFE8;color:#0B0B0F;padding:14px 20px;border-radius:12px;font-weight:600;font-size:15px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:50">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;region&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Allowed&quot;,&quot;Geofenced&quot;],&quot;default&quot;:&quot;Allowed&quot;,&quot;tsType&quot;:&quot;'Allowed' | 'Geofenced'&quot;,&quot;section&quot;:&quot;States&quot;},&quot;demoErrors&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;States&quot;}}">
+const O = '#FF8A3D', B = '#5B8CFF', BONE = '#F1EFE8', MUT = '#A9A7A0';
+const RANGES = {
+  '1D': [58,59,57,60,61,60,62,61,63,62,64,63,64],
+  '1W': [44,45,44,47,49,50,52,52,55,56,58,60,62,64],
+  'All': [30,34,33,38,41,40,45,44,48,52,55,58,61,64]
+};
+const pts = (arr, w, h, min, max) => arr.map((v, i) => `${(i / (arr.length - 1) * w).toFixed(1)},${(h - (v - min) / (max - min) * h).toFixed(1)}`).join(' ');
+
+const STANCES = {
+  afro: { tags: ['Music', 'Subjective', 'Resolves Dec 31'], title: 'Afrobeats will have 3 songs in the global top 10 by December.', short: 'Afrobeats top 10', ini: 'TS', authColor: B, author: '@temi_sounds', authorId: 'temi', authMeta: '/ calibration 0.79 in Music / captured from X', back: 64, pool: 41200, holders: 1204,
+    backArg: 'Streaming growth in Africa and global features are pushing more tracks onto worldwide charts each quarter.', fadeArg: 'Three at once is a high bar. Holiday season charts are usually dominated by evergreen releases.',
+    criteria: 'Resolves Back if 3 or more songs primarily credited to Afrobeats artists appear simultaneously in the [CHART SOURCE] global top 10 on any week before Dec 31. Creator proposes, 48h dispute window, AI juror first pass, staked appeal.', backTribe: 'afroB', fadeTribe: 'chartF' },
+  lagos: { tags: ['Perpetual', 'Culture', 'Never resolves'], title: 'Lagos is the best city in Africa.', short: 'Lagos best city', ini: 'KO', authColor: O, author: '@kemi_o', authorId: 'kemi', authMeta: '/ calibration 0.71 in Culture', back: 71, pool: 18400, holders: 2210,
+    backArg: 'Music, film, fashion and tech all route through Lagos. The energy and opportunity are unmatched on the continent.', fadeArg: 'Traffic, power and cost of living. Nairobi, Cape Town and Kigali win on day-to-day quality of life.',
+    criteria: 'Perpetual stance. Never resolves. Returns come from early entry and conviction yield, currently 4.1% / 30d for holders.', backTribe: 'lagosB', fadeTribe: 'lagosF' },
+  eth: { tags: ['Crypto', 'Objective', 'Resolves Dec 31'], title: 'ETH closes above $6k this quarter.', short: 'ETH 6k this Q', ini: 'OB', authColor: B, author: '@0xbisi', authorId: 'bisi', authMeta: '/ Caller Score B+ / oracle resolved', back: 34, pool: 118000, holders: 3882,
+    backArg: 'ETF inflows and a quiet supply schedule set up a strong Q4. 6k is one good month away.', fadeArg: 'It needs a 40% move in ten weeks with L2 fees pulling value off mainnet.',
+    criteria: 'Resolves Back if the Chainlink ETH/USD feed reads above 6,000 at 23:59 UTC on Dec 31. Settles automatically.', backTribe: 'ethB', fadeTribe: 'ethF' }
+};
+const TRIBES = {
+  afroB: { name: 'Afrobeats Backers', side: 'BACK', stance: 'afro', members: 771, strength: 64, rival: 'chartF', pinned: 'Tracking sheet of every chart position this week.', msgs: [['@temi_sounds', 'tribe lead', "New single drops Friday. If it debuts top 20 we're basically there."], ['@ada.calls', '', "Adding to Back on any dip below 0.60. Who's in?"], ['@tunde', '', 'Pinned: tracking sheet of every chart position this week.']] },
+  chartF: { name: 'Chart Faders', side: 'FADE', stance: 'afro', members: 433, strength: 36, rival: 'afroB', pinned: 'Holiday chart history, 2015 to 2025. Evergreens own December.', msgs: [['@mira_onchain', 'tribe lead', 'Holding the fade for the yield. Backers flip every time a single underperforms.'], ['@yemi', '', 'Two in the top 10 is plausible. Three at once is the trap.']] },
+  ethF: { name: 'ETH Faders', side: 'FADE', stance: 'eth', members: 1290, strength: 66, rival: 'ethB', pinned: 'Rule: no fading on red days. We fade strength.', msgs: [['@kofi_eth', 'tribe lead', 'Funding is flipping positive again. Patience.'], ['@zk', '', 'Holding fade at 0.62 average.']] },
+  ethB: { name: 'ETH Backers', side: 'BACK', stance: 'eth', members: 664, strength: 34, rival: 'ethF', pinned: 'Q4 catalysts list, updated daily.', msgs: [['@0xbisi', 'tribe lead', 'Every cycle the crowd fades this exact setup.']] },
+  lagosB: { name: 'Lagos Loyal', side: 'BACK', stance: 'lagos', members: 1570, strength: 71, rival: 'lagosF', pinned: 'Yield leaderboard: longest holders this month.', msgs: [['@kemi_o', 'tribe lead', 'Day 214 holding. Yield is paying for my data plan.'], ['@tunde', '', 'Detty December is coming. Faders will flip.']] },
+  lagosF: { name: 'Anywhere But Lagos', side: 'FADE', stance: 'lagos', members: 640, strength: 29, rival: 'lagosB', pinned: 'Nairobi vs Kigali vs Cape Town poll.', msgs: [['@wanjiru', 'tribe lead', 'Commute times alone settle this.']] },
+  gloopD: { name: 'GLOOP Diamond', side: 'BACK', stance: 'proof', members: 2180, strength: 27, rival: 'gloopF', pinned: 'Exit alert channel for @kelechi_trench is on for everyone.', msgs: [['@kelechi_trench', 'caller', 'Core still held. Trim was taking initial out.']] },
+  gloopF: { name: 'GLOOP Faders', side: 'FADE', stance: 'proof', members: 5890, strength: 73, rival: 'gloopD', pinned: '60M is 6x from here in 21 days.', msgs: [['@mira_onchain', '', 'Top 10 hold 31%. Watching for transfers.']] },
+  officeF: { name: 'Office Faders', side: 'FADE', stance: 'office', members: 910, strength: 58, rival: 'officeB', pinned: 'Remote beats office. Share your commute.', msgs: [['@yemi', 'tribe lead', 'Productivity data keeps coming in on our side.']] },
+  officeB: { name: 'Office Backers', side: 'BACK', stance: 'office', members: 660, strength: 42, rival: 'officeF', pinned: 'Return-to-office tracker.', msgs: [['@tunde', '', 'Mentorship happens in person.']] }
+};
+const STANCE_TITLES = { proof: '$GLOOP to 60M MC in 30 days. Not selling below 20M.', office: 'Remote work beats the office for productivity.' };
+const PROFILES = {
+  kelechi: { handle: '@kelechi_trench', ini: 'KT', color: O, bio: 'Monad trenches. Every call wallet-signed.', tags: ['Caller Score A-', 'Verified caller', 'Monad native'], stats: [['Calibration', '0.74', BONE], ['Caller Score', 'A-', O], ['Target hit rate', '41%', BONE], ['Follower safety', 'High', O]],
+    calls: [['RIGHT', O, '$PEPU to 25M MC', 'Proof / entry 900k / held as promised', '+28x'], ['WRONG', B, '$MOGGY 100x call', 'Proof / open / -38% so far', '-38%'], ['RIGHT', O, 'ETH long 5x', 'Proof / closed +22.4% / margin healthy', '+22%'], ['WRONG', B, 'SOL long 10x', 'Proof / liquidated / stays on record', '-100%']],
+    open: [['$GLOOP to 60M MC', 'Proof / +716% / 21d left', O, 'proof'], ['ETH long 5x', 'Entry 4,210 / Liq 3,420', O, 'proof']], saidDid: 'Held as promised on 11 of 14 calls. Two early exits were labelled fairly as profit-taking.' },
+  mira: { handle: '@mira_onchain', ini: 'MB', color: B, bio: 'Onchain sleuth. I fade hype and follow transfers.', tags: ['Calibration 0.81', 'Contrarian hits 52', 'Duel judge'], stats: [['Calibration', '0.81', O], ['Caller Score', 'B+', BONE], ['Contrarian hits', '52', BONE], ['Minds changed', '3', BONE]],
+    calls: [['RIGHT', O, 'Fade: $FROG holds 50M', 'Opinion / faded at 0.70', '+$340'], ['RIGHT', O, 'Fade: Afrobeats Grammys sweep', 'Opinion / 9 days early', '+$120'], ['WRONG', B, 'Fade: Arsenal top 2', 'Opinion / faded at 0.69', '-$90']],
+    open: [['Fade: Afrobeats top 10', 'FADE / $45 / 11d left', B, 'afro'], ['$SMOGGY trimmed 30%', 'Proof / exit alert sent 4m ago', B, 'proof']], saidDid: 'Exited $SMOGGY in three public trims. No transfers out before selling.' },
+  bisi: { handle: '@0xbisi', ini: 'OB', color: B, bio: 'Macro and majors. Leverage, honestly logged.', tags: ['Caller Score B+', '2 linked wallets', 'Duelist'], stats: [['Calibration', '0.76', BONE], ['Caller Score', 'B+', BONE], ['Liquidations', '1', B], ['Hold integrity', '84%', BONE]],
+    calls: [['WRONG', B, 'Duel vs @ada.calls: SOL beats ETH in Q3', 'Duel / judge @mira_onchain', '-$150'], ['RIGHT', O, 'BTC above 100k by July', 'Objective / backed at 0.44', '+$410'], ['RIGHT', O, 'ETH long 5x', 'Proof / closed 22m ago', '+18%']],
+    open: [['ETH closes above $6k this quarter', 'BACK / $50 / oracle', O, 'eth']], saidDid: 'Closed ETH 5x within stated plan. One liquidation in 90 days, still public.' },
+  temi: { handle: '@temi_sounds', ini: 'TS', color: B, bio: 'Music takes, chart math, early on sounds.', tags: ['Calibration 0.79 in Music', 'Tribe lead', 'Capture royalties on'], stats: [['Calibration', '0.79', O], ['Earliness', '6.1d', BONE], ['Tribe wins', '4', BONE], ['Royalties earned', '$412', O]],
+    calls: [['RIGHT', O, 'Burna world tour sellout', 'Opinion / backed at 0.38', '+$95'], ['RIGHT', O, 'Afrobeats at the Grammys', 'Opinion / 22 days early', '+$180'], ['OPEN', '#5A5A63', 'Afrobeats top 10 by December', 'Opinion / holding Back', 'open']],
+    open: [['Afrobeats top 10 by December', 'BACK / 0.64 / 11d left', O, 'afro']], saidDid: 'No Proof Stances yet. Opinion record only, clearly separated.' },
+  kemi: { handle: '@kemi_o', ini: 'KO', color: O, bio: 'Lagos to the world. Perpetual holder.', tags: ['Calibration 0.71', 'Diamond hands', 'Lagos Loyal lead'], stats: [['Calibration', '0.71', BONE], ['Longest hold', '214d', O], ['Yield earned', '$188', O], ['Contrarian hits', '11', BONE]],
+    calls: [['OPEN', '#5A5A63', 'Lagos is the best city in Africa', 'Perpetual / holding Back 214 days', 'yield'], ['RIGHT', O, 'Detty December sells out', 'Opinion / backed at 0.52', '+$60']],
+    open: [['Lagos is the best city in Africa', 'BACK / perpetual', O, 'lagos']], saidDid: 'No Proof Stances yet. Opinion record only.' }
+};
+const ALERTS = [
+  { id: 1, kind: 'EXIT', c: B, cat: 'Exits', text: '@mira_onchain trimmed 30% of $SMOGGY', time: '4m', to: ['profile', 'mira'] },
+  { id: 2, kind: 'EXIT', c: B, cat: 'Exits', text: '@0xbisi closed ETH long 5x', time: '22m', to: ['profile', 'bisi'] },
+  { id: 3, kind: 'RESOLVED', c: O, cat: 'Resolutions', text: 'Arsenal top 2 this season resolved BACK. You won $212.', time: '1h', to: ['res', 'arsenal'] },
+  { id: 4, kind: 'DUEL', c: O, cat: 'Duels', text: '@0xbisi accepted your duel: ETH beats SOL this quarter', time: '3h', to: ['tribes'] },
+  { id: 5, kind: 'DISPUTE', c: B, cat: 'Resolutions', text: '"Album of the year will be Timeless" is in its dispute window. 31h left.', time: '6h', to: ['res', 'album'] },
+  { id: 6, kind: 'YIELD', c: O, cat: 'Yield', text: '+$1.40 conviction yield from Lagos best city', time: '9h', to: ['opinion', 'lagos'] }
+];
+const RES = {
+  arsenal: { status: 'RESOLVED BACK', statusColor: O, tags: ['Football', 'Opinion', 'Resolved Oct 03'], title: 'Arsenal top 2 this season.', meta: 'You backed at 0.31 / 17 days early', verdict: 'You were right', verdictColor: O, position: 'BACK / 322.6 shares', kind: 'claim', claim: 312,
+    rows: [['Your stake', '$100.00', BONE], ['Shares', '322.6', BONE], ['Share of losing pool', '+$218.40', O], ['Conviction yield earned', '+$9.10', O], ['Protocol fee (1.5%)', '-$15.50', MUT], ['Total payout', '$312.00', O]],
+    steps: [['Created', '@ada.calls / Aug 12', 'done'], ['Creator proposed BACK', 'Table on Oct 01 / source attached', 'done'], ['48h dispute window', 'No disputes filed', 'done'], ['AI juror first pass', 'Agreed / 0.97 confidence', 'done'], ['Settled onchain', 'Tx 0x7a...e21 / Monad', 'done']] },
+  album: { status: 'IN DISPUTE', statusColor: B, tags: ['Music', 'Subjective', 'Dispute window'], title: 'Album of the year will be Timeless.', meta: 'You hold Fade at 0.42 / $40', verdict: 'Proposed: BACK', verdictColor: O, position: 'FADE / 95.2 shares', kind: 'dispute',
+    rows: [['Your stake', '$40.00', BONE], ['Your side', 'FADE', B], ['If BACK stands', '-$40.00', MUT], ['If appeal wins', '+$51.20', O], ['Appeal stake', '$10, returned if you win', BONE]],
+    steps: [['Created', '@temi_sounds / Jul 30', 'done'], ['Creator proposed BACK', 'Award announced Oct 10', 'done'], ['48h dispute window', '31h left / 12 disputes filed', 'active'], ['AI juror first pass', 'Starts when the window closes', 'pending'], ['Staked human appeal', 'Only if challenged', 'pending'], ['Settled onchain', '', 'pending']] },
+  sol: { status: 'LIQUIDATED', statusColor: B, tags: ['Proof', 'Perps', 'Closed Sep 14'], title: 'SOL long 10x.', meta: 'Proof / liquidated at 142.10 / stays on record', verdict: 'You were wrong', verdictColor: B, position: 'Closed / -100%', kind: 'none',
+    rows: [['Entry', '156.40', BONE], ['Liquidation', '142.10', B], ['Margin lost', '-$500.00', B], ['Faders of your call', '+$1,240 paid out', O]],
+    steps: [['Position opened', '7Fq...k2P / Sep 09', 'done'], ['Stance posted', 'Public / size band $5k-10k', 'done'], ['Margin warning', 'Exit alert sent to 212 followers', 'done'], ['Liquidated', 'Sep 14 03:12', 'done'], ['Written to Receipts', 'Permanent', 'done']] }
+};
+
+class Component extends DCLogic {
+  state = {
+    stanceId: 'afro', profileId: 'kelechi', tribeId: 'afroB', resId: 'arsenal', mode: 'Real', points: 12400,
+    pending: false, modal: null, shareOpen: false, followed: [], heldBy: {}, poolAdd: {}, commentsBy: {}, userStances: {},
+    joined: ['afroB', 'ethF', 'lagosB'], tribeChats: {}, trDraft: '',
+    readAlerts: [5, 6], alertFilter: 'All', claimed: {}, appealed: {},
+    walletMethod: 'card', fundAmt: 50, funding: false, linking: false, withdrawAmt: '',
+    linked: [['0x4b...91e', 'Monad / main'], ['0x7fa...k2p', 'Monad / trading']],
+    walletTx: [{ label: 'Conviction yield / Lagos best city', time: 'today 09:12', amt: '+$1.40', c: '#FF8A3D' }, { label: 'Card deposit via Mercuryo', time: 'Oct 08', amt: '+$200.00', c: '#FF8A3D' }, { label: 'Duel escrow / ETH vs SOL', time: 'Oct 02', amt: '-$150.00', c: '#A9A7A0' }],
+    view: 'feed', navKey: 'feed', balance: 248.30, toast: '',
+    open: [{ name: 'Afrobeats top 10', val: 'BACK +18%', color: O }, { name: 'ETH 6k this Q', val: 'FADE -4%', color: B }, { name: 'Lagos best city', val: 'yield +$1.40', color: O }],
+    feedFilter: 'For You', userCards: [],
+    side: 'back', amount: 25, range: '1W', pool: 41200, holders: 1204, held: false, commentDraft: '',
+    comments: [
+      { ini: 'AO', user: '@ada.calls', tag: 'BACK / $120', color: O, text: 'Two are already inside the top 20 and climbing. The third is the question.' },
+      { ini: 'MB', user: '@mira_onchain', tag: 'FADE / $45', color: B, text: "December charts are holiday songs. I'm holding the fade for the yield anyway." }
+    ],
+    activity: [{ k: 'BACK', c: O, t: '$50', u: '@0xbisi / 1m' }, { k: 'FLIP', c: B, t: 'to Back', u: '@tunde / 3m' }, { k: 'FADE', c: B, t: '$12', u: '@yemi / 6m' }],
+    tailAmt: '50 USDC', tailing: 418, tailVolK: 62,
+    createType: 'Proof', posMode: 'buy', stanceText: '$GLOOP to 60M MC in 30 days. Not selling below 20M.', topic: 'Crypto', createSide: 'Back', stake: '25 USDC', mm: true, tr: true,
+    draftLink: 'https://x.com/temi_sounds/status/...', token: '$GLOOP',
+    rFilter: 'All', following: false,
+    liveSide: 'home', liveConv: 58, minute: 67, inRoom: 2311,
+    liveSeries: [52,53,50,55,54,57,56,60,58,51,49,53,55,57,60,59,61,60,62,61,63],
+    chat: [
+      { u: '@tunde', side: 'HOME', c: O, t: "They've had all the pressure since the hour mark." },
+      { u: '@yemi', side: 'AWAY', c: B, t: 'Counter attacks are killing them. Holding.' },
+      { u: '@ada.calls', side: 'HOME', c: O, t: 'Flipped back in at 0.44. Thanks for the yield.' },
+      { u: '', side: '', c: MUT, t: '@kemi flipped to AWAY / 4s', mono: true }
+    ],
+    chatDraft: '',
+    tribeMsgs: [
+      { u: '@temi_sounds', role: 'tribe lead', t: "New single drops Friday. If it debuts top 20 we're basically there." },
+      { u: '@ada.calls', role: '', t: "Adding to Back on any dip below 0.60. Who's in?" },
+      { u: '@tunde', role: '', t: 'Pinned: tracking sheet of every chart position this week.' }
+    ],
+    tribeDraft: '', duelFriend: '', duelTake: '', argDraft: '',
+    args: [
+      { u: '@mira_onchain', r: 'thinking', t: 'App-specific rollups are growing, not dying. Irrelevance means no users, and the usage data points the other way.' },
+      { u: '@kofi_eth', r: 'unconvinced', t: 'Exchanges and wallets have already integrated L2s deeply. Switching costs keep them alive.' }
+    ]
+  };
+
+  componentDidMount() {
+    this.tick = setInterval(() => {
+      if (this.state.view !== 'live') return;
+      this.setState(s => {
+        const c = Math.max(35, Math.min(80, s.liveConv + Math.round((Math.random() - 0.45) * 4)));
+        return { liveConv: c, liveSeries: [...s.liveSeries.slice(1), c], inRoom: s.inRoom + Math.round((Math.random() - 0.3) * 6) };
+      });
+    }, 2000);
+  }
+  componentWillUnmount() { clearInterval(this.tick); clearTimeout(this.tt); }
+
+  stanceOf(id) { return STANCES[id] || this.state.userStances[id] || STANCES.afro; }
+  openStance(id, side) { this.setState(side ? { stanceId: id, side } : { stanceId: id }); this.go('opinion', 'feed'); }
+  openProfile(id) { if (id === 'ada') return this.go('receipts'); if (!PROFILES[id]) return this.flash('Profile coming soon'); this.setState({ profileId: id }); this.go('profile', ''); }
+  openTribe(id) { if (!TRIBES[id]) return this.flash('Rooms open at 10 members'); this.setState({ tribeId: id }); this.go('tribe', 'tribes'); }
+  goTarget(to) {
+    const [k, id] = to;
+    if (k === 'profile') this.openProfile(id); else if (k === 'res') { this.setState({ resId: id }); this.go('res', 'receipts'); }
+    else if (k === 'opinion') this.openStance(id); else if (k === 'proof') this.go('proof'); else this.go(k);
+  }
+  openStanceKey(k) { if (k === 'proof') this.go('proof'); else if (STANCES[k]) this.openStance(k); else this.flash('Stance page coming soon'); }
+  doTrade() {
+    const s = this.state, st = this.stanceOf(s.stanceId);
+    if (this.props.demoErrors) { this.setState({ modal: { kind: 'error' } }); return; }
+    const price = s.side === 'back' ? st.back / 100 : (100 - st.back) / 100;
+    if (!this.spend(s.amount)) return;
+    const K = s.side === 'back' ? 'BACK' : 'FADE', c = s.side === 'back' ? O : B, id = s.stanceId;
+    this.setState(x => ({
+      open: [{ name: st.short || 'Your stance', val: `${K} $${x.amount}`, color: c }, ...x.open],
+      activity: [{ k: K, c, t: '$' + x.amount, u: '@zk / now' }, ...x.activity].slice(0, 6),
+      poolAdd: { ...x.poolAdd, [id]: (x.poolAdd[id] || 0) + x.amount }, heldBy: { ...x.heldBy, [id]: K },
+      joined: [...new Set([...x.joined, K === 'BACK' ? st.backTribe : st.fadeTribe].filter(Boolean))]
+    }));
+    this.flash(`${K === 'BACK' ? 'Backed' : 'Faded'} with ${this.mode() === 'Play' ? (s.amount * 100) + ' points' : '$' + s.amount}. ${(s.amount / price).toFixed(1)} shares. You can comment now.`);
+  }
+
+  extra(s) {
+    const st = this.stanceOf(s.stanceId), sid = s.stanceId;
+    const backP = st.back / 100, price = s.side === 'back' ? backP : 1 - backP, shares = s.amount / price;
+    const base = RANGES[s.range], off = st.back - base[base.length - 1];
+    const series = base.map(x => Math.max(3, Math.min(97, x + off)));
+    const mode = this.mode(), geo = this.geo(), play = mode === 'Play';
+    const unreadN = ALERTS.filter(a => !s.readAlerts.includes(a.id)).length;
+    const F = s.feedFilter, fol = s.followed;
+    const showFor = (tags, who) => F === 'For You' || (F === 'Following' ? fol.includes(who) : tags.includes(F));
+    const sh = { o: showFor(['Music'], 'temi'), p: showFor(['Proof', 'Crypto'], 'kelechi'), l: showFor(['Live', 'Football'], '-'), c: showFor(['Crypto'], 'ada'), pe: showFor(['Perpetual'], 'kemi') };
+    const navDef = [['feed', 'Feed', 'feed'], ['live', 'Live Rooms', 'live', '3 LIVE'], ['proof', 'Proof Stances', 'proof'], ['tribes', 'Tribes and Duels', 'tribes'], ['cmm', 'Change My Mind', 'tribes'], ['receipts', 'My Receipts', 'receipts'], ['alerts', 'Alerts', 'alerts', unreadN ? String(unreadN) : ''], ['wallet', 'Wallet', 'wallet'], ['docs', 'Docs']];
+    const tr = TRIBES[s.tribeId] || TRIBES.afroB, trId = TRIBES[s.tribeId] ? s.tribeId : 'afroB';
+    const trSideColor = tr.side === 'BACK' ? O : B, trUnlocked = s.joined.includes(trId);
+    const pr = PROFILES[s.profileId] || PROFILES.kelechi;
+    const res = RES[s.resId] || RES.arsenal;
+    const appealed = !!s.appealed[s.resId], claimed = !!s.claimed[s.resId];
+    const resSteps = res.steps.map(([l, d, stt], i) => {
+      let state = stt;
+      if (s.resId === 'album' && appealed) state = i < 3 ? 'done' : i === 4 ? 'active' : i === 3 ? 'done' : 'pending';
+      const done = state === 'done', act = state === 'active';
+      return { l: s.resId === 'album' && appealed && i === 3 ? 'AI juror first pass' : l, d: s.resId === 'album' && appealed && i === 4 ? 'You appealed / $10 staked / 5 jurors drawn' : d,
+        dotBorder: done ? O : act ? B : '#33333D', dotBg: done ? O : 'transparent', line: i === res.steps.length - 1 ? 'transparent' : done ? '#3A2512' : '#24242C', lc: done || act ? BONE : MUT };
+    });
+    const fm = s.walletMethod;
+    const fundMeta = { card: ['Card or bank via Mercuryo', '1.5%', '~2 minutes'], chain: ['Any chain via Aurora Intents', '0.1%', '~30 seconds'] }[fm] || ['', '', ''];
+    const alertsFiltered = ALERTS.filter(a => s.alertFilter === 'All' || (s.alertFilter === 'Unread' ? !s.readAlerts.includes(a.id) : a.cat === s.alertFilter));
+    const markRead = id => this.setState(x => ({ readAlerts: [...new Set([...x.readAlerts, id])] }));
+    const modal = s.modal;
+    let mv = {};
+    if (modal && modal.kind === 'funds') mv = { k: 'NOT ENOUGH BALANCE', kc: B, t: modal.play ? 'Not enough Play points' : `You need $${modal.need.toFixed(2)} more`, b: modal.play ? 'Points top up daily. You can also switch to Stance Real and stake USDC.' : 'Add funds by card, bank or from any chain in about two minutes. Or keep going with free points in Stance Play.',
+      p: modal.play ? 'Go to wallet' : 'Add funds', pf: () => { this.setState({ modal: null }); this.go('wallet'); }, s2: modal.play || geo ? '' : 'Switch to Stance Play', sf: () => { this.setState({ modal: null, mode: 'Play' }); this.flash('Switched to Stance Play. Same profile, same score.'); } };
+    if (modal && modal.kind === 'error') mv = { k: 'TRANSACTION FAILED', kc: B, t: "That didn't go through", b: 'The price moved more than your 2% slippage while confirming. Nothing was charged.', p: 'Try again', pf: () => { this.setState({ modal: null }); }, s2: '', sf: null };
+    if (modal && modal.kind === 'geo') mv = { k: 'REGION', kc: B, t: 'Stance Real is not available here', b: 'Real-money features are geofenced and identity-tiered. You can do this with points in Stance Play, and it counts toward your Receipts the same way.', p: 'Use Stance Play', pf: () => this.setState({ modal: null }), s2: '', sf: null };
+
+    return {
+      nav: navDef.map(([k, label, view, badge]) => ({ label, badge: badge || '', bg: s.navKey === k ? '#1A130C' : 'transparent', color: s.navKey === k ? O : BONE,
+        onClick: () => k === 'docs' ? (window.location.href = 'Stance Docs.dc.html') : this.go(view, k) })),
+      modeLabel: play ? 'Play' : 'Real', points: s.points.toLocaleString(), unread: unreadN,
+      goAlerts: () => this.go('alerts'), goWallet: () => this.go('wallet'),
+      isWallet: s.view === 'wallet', isAlerts: s.view === 'alerts', isRes: s.view === 'res', isProfile: s.view === 'profile', isTribe: s.view === 'tribe',
+      // feed
+      filters: ['For You', 'Following', 'Proof', 'Live', 'Perpetual', 'Tribes', 'Right When You Were Wrong', 'Crypto', 'Football', 'Music'].map(l => ({
+        label: l, bg: F === l ? BONE : 'transparent', color: F === l ? '#0B0B0F' : BONE, border: F === l ? BONE : '#33333D', onClick: () => this.setState({ feedFilter: l }) })),
+      showOpinion: sh.o, showProof: sh.p, showLive: sh.l, showCmm: sh.c, showPerp: sh.pe,
+      feedEmpty: F === 'Following' && !Object.values(sh).some(Boolean), showForYou: () => this.setState({ feedFilter: 'For You' }),
+      isRightFeed: F === 'Right When You Were Wrong', isTribeFeed: F === 'Tribes',
+      rightList: [['mira', '@mira_onchain', 'Fade: $FROG holds 50M MC', 'Faded at 0.70 / you backed / she made +$340'], ['kelechi', '@kelechi_trench', 'BTC dominance below 55% in Q3', 'Faded at 0.58 / you backed / Caller A-'], ['bisi', '@0xbisi', 'Spurs finish above Chelsea', 'Backed at 0.41 / you faded']].map(([id, u, stance, meta]) => ({
+        u, stance, meta, label: fol.includes(id) ? 'Following' : 'Follow', onOpen: () => this.openProfile(id),
+        onFollow: () => this.setState(x => ({ followed: x.followed.includes(id) ? x.followed.filter(f => f !== id) : [...x.followed, id] })) })),
+      tribeFeed: [['afroB', '@temi_sounds', 'pinned a new chart tracker', '2m'], ['ethF', '@kofi_eth', 'Funding is flipping positive again. Patience.', '14m'], ['lagosB', '@kemi_o', 'Day 214 holding. Yield is paying for my data plan.', '1h'], ['afroB', '@ada.calls', "Adding to Back on any dip below 0.60.", '2h']].map(([id, u, t, time]) => ({
+        tribe: TRIBES[id].name, c: TRIBES[id].side === 'BACK' ? O : B, u, t, time, onOpen: () => this.openTribe(id) })),
+      userCards: F === 'For You' ? s.userCards.map(c => ({ ...c, onOpen: () => this.openStance(c.id) })) : [],
+      goOpinion: () => this.openStance('afro'), openLagos: () => this.openStance('lagos'),
+      backFromFeed: () => this.openStance('afro', 'back'), fadeFromFeed: () => this.openStance('afro', 'fade'),
+      callers: [['1', '@ada.calls', 'A', O, 'ada'], ['2', '@kelechi_trench', 'A-', O, 'kelechi'], ['3', '@mira_onchain', 'B+', BONE, 'mira'], ['4', '@0xbisi', 'B+', BONE, 'bisi']].map(([rank, name, grade, color, id]) => ({ rank, name, grade, color, onClick: () => this.openProfile(id) })),
+      openMira: () => this.openProfile('mira'), openBisi: () => this.openProfile('bisi'),
+      openT_afroB: () => this.openTribe('afroB'), openT_ethF: () => this.openTribe('ethF'), openT_gloopD: () => this.openTribe('gloopD'), openT_officeF: () => this.openTribe('officeF'),
+      // opinion
+      st, stTags: st.tags, openAuthor: () => this.openProfile(st.authorId),
+      oppBackNow: series[series.length - 1],
+      oppBackPts: pts(series, 800, 200, 0, 100), oppFadePts: pts(series.map(x => 100 - x), 800, 200, 0, 100),
+      pool: '$' + ((st.pool + (s.poolAdd[sid] || 0)) / 1000).toFixed(1) + 'k', holders: (st.holders + (s.heldBy[sid] ? 1 : 0)).toLocaleString(),
+      backPriceLbl: backP.toFixed(2), fadePriceLbl: (1 - backP).toFixed(2),
+      estShares: shares.toFixed(1), payout: shares.toFixed(2),
+      ctaLabel: s.pending ? 'Confirming...' : (play ? `${s.side === 'back' ? 'Back' : 'Fade'} with ${s.amount * 100} pts` : `${s.side === 'back' ? 'Back' : 'Fade'} with $${s.amount}`),
+      tradeSafe: () => { if (this.state.pending) return; this.setState({ pending: true }); setTimeout(() => { this.setState({ pending: false }); this.doTrade(); }, 900); },
+      backTribeName: TRIBES[st.backTribe]?.name || 'Backers', backTribeN: TRIBES[st.backTribe]?.members ?? 1,
+      fadeTribeName: TRIBES[st.fadeTribe]?.name || 'Faders', fadeTribeN: TRIBES[st.fadeTribe]?.members ?? 0,
+      openBackTribe: () => this.openTribe(st.backTribe), openFadeTribe: () => this.openTribe(st.fadeTribe),
+      comments: sid === 'afro' ? s.comments : (s.commentsBy[sid] || (sid === 'lagos' ? [{ ini: 'KO', user: '@kemi_o', tag: 'BACK / $80', color: O, text: 'Day 214. Faders keep paying my yield every time they flip.' }] : [])),
+      canComment: !!s.heldBy[sid] || (sid === 'afro' && s.held),
+      onCommentKey: e => {
+        if (e.key !== 'Enter' || !s.commentDraft.trim()) return;
+        const side = s.heldBy[sid] || (s.side === 'back' ? 'BACK' : 'FADE');
+        const c = { ini: 'ZK', user: '@zk', tag: side + ' / $' + s.amount, color: side === 'BACK' ? O : B, text: s.commentDraft };
+        if (sid === 'afro') this.setState(x => ({ comments: [...x.comments, c], commentDraft: '' }));
+        else this.setState(x => ({ commentsBy: { ...x.commentsBy, [sid]: [...(x.commentsBy[sid] || []), c] }, commentDraft: '' }));
+      },
+      // create
+      publish: () => {
+        if (s.stanceText.trim().length <= 12) return this.flash('Write your stance first');
+        if (!this.spend((parseFloat(s.stake) || 0) + 0.5)) return;
+        const id = 'u' + Date.now();
+        const us = { tags: [s.createType, s.topic, 'New'], title: s.stanceText, short: s.stanceText.slice(0, 22) + '...', ini: 'ZK', authColor: O, author: '@zk', authorId: 'ada', authMeta: '/ just now / your stance', back: 50, pool: parseFloat(s.stake) || 0, holders: 0,
+          backArg: 'No arguments yet. Hold a side and make the case.', fadeArg: s.mm ? 'The market maker agent is holding the other side until faders arrive.' : 'No faders yet.', criteria: 'Criteria checked by AI before publishing. Resolves per the settings you chose.' };
+        this.setState(x => ({ userStances: { ...x.userStances, [id]: us }, heldBy: { ...x.heldBy, [id]: x.createSide.toUpperCase() }, userCards: [{ id, type: x.createType, topic: x.topic, text: x.stanceText, stake: '$' + (parseFloat(x.stake) || 0) }, ...x.userCards], feedFilter: 'For You' }));
+        this.go('feed'); this.flash('Stance published. Market is live.');
+      },
+      // receipts
+      shareReceipts: () => this.setState({ shareOpen: true }),
+      toggleFollow: () => { const on = fol.includes('ada'); this.setState({ following: !on, followed: on ? fol.filter(f => f !== 'ada') : [...fol, 'ada'] }); if (!on) this.flash('Following @ada.calls. Exit alerts on.'); },
+      followLabel: fol.includes('ada') ? 'Following' : 'Follow',
+      receipts: [
+        ['Proof', 'RIGHT', O, O, '$PEPU to 25M MC', 'Proof / entry 900k / exit 31M / held as promised', '+34x', O, ['proof']],
+        ['Opinion', 'RIGHT', O, O, 'Arsenal top 2 this season', 'Opinion / backed at 0.31 / 17 days early', '+$212', O, ['res', 'arsenal']],
+        ['Proof', 'WRONG', B, B, 'SOL long 10x', 'Proof / liquidated at 142.10 / stays on record', '-100%', B, ['res', 'sol']],
+        ['Duels', 'WON', O, O, 'Duel vs @0xbisi: ETH beats SOL in Q3', 'Duel / judge @mira_onchain', '+$150', O, ['tribes']],
+        ['Opinion', 'DISPUTE', B, B, 'Album of the year will be Timeless', 'Subjective / you hold Fade / 31h left in window', 'open', B, ['res', 'album']],
+        ['Opinion', 'OPEN', '#2F2F38', BONE, 'Lagos is the best city in Africa', 'Perpetual / holding Back 214 days', 'yield +$48', O, ['opinion', 'lagos']]
+      ].filter(r => s.rFilter === 'All' || r[0] === s.rFilter).map(([type, badge, bc, bt, title, meta, val, vc, to]) => ({ type, badge, bc, bt, title, meta, val, vc, onClick: () => this.goTarget(to) })),
+      // proof
+      tail: () => {
+        if (geo) return this.setState({ modal: { kind: 'geo' } });
+        if (this.props.demoErrors) return this.setState({ modal: { kind: 'error' } });
+        const n = parseFloat(s.tailAmt) || 0;
+        if (n <= 0) return this.flash('Enter an amount');
+        if (!this.spend(n)) return;
+        this.setState(x => ({ tailing: x.tailing + 1, tailVolK: x.tailVolK + n / 1000 }));
+        this.flash(`Tailing $GLOOP with ${n} USDC. Exit alerts on.`);
+      },
+      // wallet
+      geoBlocked: geo,
+      setPlay: () => this.setState({ mode: 'Play' }), setReal: () => geo ? this.setState({ modal: { kind: 'geo' } }) : this.setState({ mode: 'Real' }),
+      playBg: play ? BONE : 'transparent', playColor: play ? '#0B0B0F' : BONE,
+      realBg: !play ? O : 'transparent', realColor: !play ? '#0B0B0F' : BONE, realOpacity: geo ? 0.45 : 1,
+      modeNote: play ? 'Free points. Opinion, perpetual, tribes and duels for points. Same profile, same score.' : 'USDC stakes, Proof Stances, Tail, real-money duels and bounties. Identity-tiered.',
+      fundMethods: [['card', 'Card or bank'], ['chain', 'From any chain'], ['receive', 'Receive']].map(([k, label]) => ({ label, bg: fm === k ? BONE : 'transparent', color: fm === k ? '#0B0B0F' : BONE, border: fm === k ? BONE : '#33333D', onClick: () => this.setState({ walletMethod: k }) })),
+      isReceive: fm === 'receive', notReceive: fm !== 'receive',
+      copyAddr: () => { try { navigator.clipboard.writeText('0x4b1fa7c291e'); } catch (e) {} this.flash('Address copied'); },
+      fundAmts: [25, 50, 100, 250].map(n => ({ label: '$' + n, bg: s.fundAmt === n ? BONE : 'transparent', color: s.fundAmt === n ? '#0B0B0F' : BONE, onClick: () => this.setState({ fundAmt: n }) })),
+      fundRoute: fundMeta[0], fundFee: fundMeta[1], fundEta: fundMeta[2],
+      addFundsLabel: s.funding ? 'Processing...' : `Add $${s.fundAmt}`,
+      addFunds: () => {
+        if (s.funding) return;
+        if (geo) return this.setState({ modal: { kind: 'geo' } });
+        this.setState({ funding: true });
+        setTimeout(() => { this.setState(x => ({ funding: false, balance: +(x.balance + x.fundAmt).toFixed(2), walletTx: [{ label: fm === 'card' ? 'Card deposit via Mercuryo' : 'Cross-chain deposit via Aurora', time: 'just now', amt: '+$' + x.fundAmt.toFixed(2), c: O }, ...x.walletTx] })); this.flash(`$${s.fundAmt} added. Ready to stance.`); }, 1300);
+      },
+      withdrawAmt: s.withdrawAmt, onWithdrawAmt: e => this.setState({ withdrawAmt: e.target.value }),
+      withdraw: () => {
+        const n = parseFloat(s.withdrawAmt) || 0;
+        if (n <= 0) return this.flash('Enter an amount');
+        if (n > s.balance) return this.setState({ modal: { kind: 'funds', need: +(n - s.balance).toFixed(2) } });
+        this.setState(x => ({ balance: +(x.balance - n).toFixed(2), withdrawAmt: '', walletTx: [{ label: 'Withdrawal to 0x4b...91e', time: 'just now', amt: '-$' + n.toFixed(2), c: MUT }, ...x.walletTx] }));
+        this.flash(`$${n.toFixed(2)} on its way to 0x4b...91e`);
+      },
+      linkedWallets: s.linked.map(([addr, chain]) => ({ addr, chain })),
+      tierLabel: 'TIER ' + Math.min(4, s.linked.length) + ' / 4', tierW: Math.min(100, s.linked.length * 25) + '%',
+      linkLabel: s.linking ? 'Waiting for signature...' : s.linked.length >= 6 ? 'All supported chains linked' : 'Link a wallet',
+      linkWallet: () => {
+        const next = [['0x2c...7aa', 'Monad / vault'], ['0x5e...b10', 'Monad / creator'], ['0x8c1...e22', 'Monad / tailing']][s.linked.length - 2];
+        if (s.linking || !next) return;
+        this.setState({ linking: true });
+        setTimeout(() => { this.setState(x => ({ linking: false, linked: [...x.linked, next] })); this.flash(`${next[1]} wallet verified by signature`); }, 1200);
+      },
+      walletTx: s.walletTx,
+      // alerts
+      alertFilters: ['All', 'Unread', 'Exits', 'Resolutions', 'Duels', 'Yield'].map(l => ({ label: l, bg: s.alertFilter === l ? BONE : 'transparent', color: s.alertFilter === l ? '#0B0B0F' : BONE, border: s.alertFilter === l ? BONE : '#33333D', onClick: () => this.setState({ alertFilter: l }) })),
+      alertsList: alertsFiltered.map((a, i) => { const un = !s.readAlerts.includes(a.id); return { ...a, dot: un ? O : 'transparent', tc: un ? BONE : MUT, border: i === 0 ? 'transparent' : '#24242C', onClick: () => { markRead(a.id); this.goTarget(a.to); } }; }),
+      alertsEmpty: !alertsFiltered.length, alertsEmptyMsg: s.alertFilter === 'Unread' ? "You're all caught up." : 'Follow callers to get exit alerts the second they sell.',
+      markAllRead: () => this.setState({ readAlerts: ALERTS.map(a => a.id) }),
+      // resolution
+      res, resTags: res.tags, resRows: res.rows.map(([k, v, c]) => ({ k, v, c })), resSteps,
+      resClaim: res.kind === 'claim', resDispute: res.kind === 'dispute', resNone: res.kind === 'none',
+      claimLabel: claimed ? 'Claimed to balance' : `Claim $${(res.claim || 0).toFixed(2)}`, claimBg: claimed ? '#2F2F38' : O,
+      claim: () => { if (claimed) return; this.setState(x => ({ claimed: { ...x.claimed, [x.resId]: true }, balance: +(x.balance + res.claim).toFixed(2), walletTx: [{ label: 'Payout / ' + res.title, time: 'just now', amt: '+$' + res.claim.toFixed(2), c: O }, ...x.walletTx] })); this.flash(`$${res.claim.toFixed(2)} added to your balance`); },
+      appealLabel: appealed ? 'Appeal filed' : 'Appeal with $10 stake',
+      appeal: () => { if (appealed) return; if (!this.spend(10)) return; this.setState(x => ({ appealed: { ...x.appealed, [x.resId]: true } })); this.flash('Appeal filed. 5 staked jurors drawn.'); },
+      acceptRes: () => this.flash('Noted. Settlement will follow when the window closes.'),
+      // profile
+      pr, prTags: pr.tags, prStats: pr.stats.map(([k, v, c]) => ({ k, v, c })),
+      prCalls: pr.calls.map(([badge, bc, title, meta, val]) => ({ badge, bc, title, meta, val })),
+      prOpen: pr.open.map(([t, m, c, k]) => ({ t, m, c, onClick: () => this.openStanceKey(k) })),
+      prFollowLabel: fol.includes(s.profileId) ? 'Following' : 'Follow',
+      prFollow: () => { const on = fol.includes(s.profileId); this.setState({ followed: on ? fol.filter(f => f !== s.profileId) : [...fol, s.profileId] }); if (!on) this.flash(`Following ${pr.handle}. Exit alerts on.`); },
+      // tribe room
+      tr: { ...tr, sideColor: trSideColor, sideWord: tr.side === 'BACK' ? 'Back' : 'Fade', stanceTitle: STANCES[tr.stance]?.title || STANCE_TITLES[tr.stance] || '' },
+      trLocked: !trUnlocked, trOpen: trUnlocked,
+      joinLabel: `${tr.side === 'BACK' ? 'Back' : 'Fade'} ${play ? '500 pts' : '$5'} to join`,
+      joinTribe: () => { if (!this.spend(5)) return; this.setState(x => ({ joined: [...x.joined, trId] })); this.flash(`You're in ${tr.name}`); },
+      trViewStance: () => this.openStanceKey(tr.stance),
+      trMsgs: (s.tribeChats[trId] || tr.msgs.map(([u, role, t]) => ({ u, role, t }))),
+      trDraft: s.trDraft, onTrDraft: e => this.setState({ trDraft: e.target.value }),
+      onTrKey: e => { if (e.key !== 'Enter' || !s.trDraft.trim()) return; const cur = s.tribeChats[trId] || tr.msgs.map(([u, role, t]) => ({ u, role, t })); this.setState(x => ({ tribeChats: { ...x.tribeChats, [trId]: [...cur, { u: '@zk', role: 'you', t: x.trDraft }] }, trDraft: '' })); },
+      rivalName: TRIBES[tr.rival]?.name || '', rivalStrength: TRIBES[tr.rival]?.strength ?? 0, openRival: () => this.openTribe(tr.rival),
+      trMembers: [['@temi_sounds', 'temi'], ['@ada.calls', 'ada'], ['@kelechi_trench', 'kelechi'], ['@mira_onchain', 'mira'], ['@zk', '']].slice(0, 5).map(([u, id], i) => ({ u, m: ['$1k-5k / 0.79', '$500-1k / 0.87', '$100-500 / 0.74', '$100-500 / 0.81', 'you'][i], onClick: () => id ? this.openProfile(id) : null })),
+      // modals
+      modalOpen: !!modal, modalKicker: mv.k || '', modalKickerColor: mv.kc || O, modalTitle: mv.t || '', modalBody: mv.b || '',
+      modalPrimary: mv.p || 'OK', onModalPrimary: mv.pf || (() => this.setState({ modal: null })),
+      modalHasSecondary: !!mv.s2, modalSecondary: mv.s2 || '', onModalSecondary: mv.sf || (() => {}),
+      closeModal: () => this.setState({ modal: null }), stop: e => e.stopPropagation(),
+      shareOpen: s.shareOpen, closeShare: () => this.setState({ shareOpen: false }),
+      postX: () => { window.open('https://x.com/intent/post?text=' + encodeURIComponent('My receipts on Stance. Opinions are cheap. Receipts aren\'t. stance.click/ada.calls'), '_blank'); },
+      copyShare: () => { try { navigator.clipboard.writeText('https://stance.click/ada.calls'); } catch (e) {} this.flash('Link copied: stance.click/ada.calls'); },
+      downloadShare: () => this.flash('Receipts card saved as PNG')
+    };
+  }
+
+  flash(msg) { clearTimeout(this.tt); this.setState({ toast: msg }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2600); }
+  go(view, navKey) { this.setState({ view, navKey: navKey || view }); window.scrollTo(0, 0); }
+  geo() { return (this.props.region ?? 'Allowed') === 'Geofenced'; }
+  mode() { return this.geo() ? 'Play' : this.state.mode; }
+  spend(n) {
+    const s = this.state;
+    if (this.mode() === 'Play') {
+      const p = Math.round(n * 100);
+      if (p > s.points) { this.setState({ modal: { kind: 'funds', need: (p - s.points) / 100, play: true } }); return false; }
+      this.setState(st => ({ points: st.points - p })); return true;
+    }
+    if (n > s.balance) { this.setState({ modal: { kind: 'funds', need: +(n - s.balance).toFixed(2) } }); return false; }
+    this.setState(st => ({ balance: +(st.balance - n).toFixed(2), walletTx: [{ label: 'Stance position', time: 'just now', amt: '-$' + n.toFixed(2), c: '#A9A7A0' }, ...st.walletTx] })); return true;
+  }
+
+  renderVals() {
+    const s = this.state, v = s.view;
+    const navDef = [['feed', 'Feed', 'feed'], ['live', 'Live Rooms', 'live', '3 LIVE'], ['proof', 'Proof Stances', 'proof'], ['tribes', 'Tribes and Duels', 'tribes'], ['cmm', 'Change My Mind', 'tribes'], ['receipts', 'My Receipts', 'receipts'], ['docs', 'Docs']];
+    const nav = navDef.map(([k, label, view, badge]) => ({
+      label, badge: badge || '',
+      bg: s.navKey === k ? '#1A130C' : 'transparent', color: s.navKey === k ? O : BONE,
+      onClick: () => k === 'docs' ? (window.location.href = 'Stance Docs.dc.html') : this.go(view, k)
+    }));
+    const F = s.feedFilter;
+    const show = (tags) => F === 'For You' || F === 'Following' || tags.includes(F);
+    const price = s.side === 'back' ? 0.64 : 0.36;
+    const shares = s.amount / price;
+    const series = RANGES[s.range];
+    const live = s.liveConv / 100;
+    const homeSel = s.liveSide === 'home';
+    const rData = [
+      { type: 'Proof', badge: 'RIGHT', bc: O, bt: O, title: '$PEPU to 25M MC', meta: 'Proof / entry 900k / exit 31M / held as promised', val: '+34x', vc: O },
+      { type: 'Opinion', badge: 'RIGHT', bc: O, bt: O, title: 'Arsenal top 2 this season', meta: 'Opinion / backed at 0.31 / 17 days early', val: '+$212', vc: O },
+      { type: 'Proof', badge: 'WRONG', bc: B, bt: B, title: 'SOL long 10x', meta: 'Proof / liquidated at 142.10 / stays on record', val: '-100%', vc: B },
+      { type: 'Duels', badge: 'WON', bc: O, bt: O, title: 'Duel vs @0xbisi: ETH beats SOL in Q3', meta: 'Duel / judge @mira_onchain', val: '+$150', vc: O },
+      { type: 'Opinion', badge: 'OPEN', bc: '#2F2F38', bt: BONE, title: 'Lagos is the best city in Africa', meta: 'Perpetual / holding Back 214 days', val: 'yield +$48', vc: O }
+    ];
+    const isProofType = s.createType === 'Proof';
+    const textOk = s.stanceText.trim().length > 12;
+
+    return {
+      nav, balance: s.balance.toFixed(2), toast: s.toast, hasToast: !!s.toast,
+      isFeed: v === 'feed', isOpinion: v === 'opinion', isProof: v === 'proof', isCreate: v === 'create', isReceipts: v === 'receipts', isLive: v === 'live', isTribes: v === 'tribes',
+      goFeed: () => this.go('feed'), goOpinion: () => this.go('opinion', 'feed'), goProof: () => this.go('proof'), goCreate: () => this.go('create', ''),
+      goReceipts: () => this.go('receipts'), goLive: () => this.go('live'), goTribes: () => this.go('tribes'), goCmm: () => this.go('tribes', 'cmm'),
+      showAlerts: () => this.flash('4 alerts: 2 exits, 1 resolution, 1 duel invite'),
+      filters: ['For You', 'Following', 'Proof', 'Live', 'Perpetual', 'Crypto', 'Football', 'Music'].map(l => ({
+        label: l, bg: F === l ? BONE : 'transparent', color: F === l ? '#0B0B0F' : BONE, border: F === l ? BONE : '#33333D',
+        onClick: () => this.setState({ feedFilter: l })
+      })),
+      showOpinion: show(['Music']), showProof: show(['Proof', 'Crypto']), showLive: show(['Live', 'Football']), showCmm: show(['Crypto']), showPerp: show(['Perpetual']),
+      userCards: F === 'For You' || F === 'Following' ? s.userCards : [],
+      feedLivePts: pts([40, 42, 38, 47, 45, 55, 53, 62, 60, 68, 64], 800, 110, 20, 80),
+      backFromFeed: () => { this.setState({ side: 'back' }); this.go('opinion', 'feed'); },
+      fadeFromFeed: () => { this.setState({ side: 'fade' }); this.go('opinion', 'feed'); },
+      callers: [['1', '@ada.calls', 'A', O], ['2', '@kelechi_trench', 'A-', O], ['3', '@mira_onchain', 'B+', BONE], ['4', '@0xbisi', 'B+', BONE]].map(([rank, name, grade, color]) => ({ rank, name, grade, color })),
+      openStances: s.open,
+
+      oppBackNow: series[series.length - 1],
+      ranges: ['1D', '1W', 'All'].map(l => ({ label: l, border: s.range === l ? BONE : '#33333D', onClick: () => this.setState({ range: l }) })),
+      oppBackPts: pts(series, 800, 200, 20, 80), oppFadePts: pts(series.map(x => 100 - x), 800, 200, 20, 80),
+      pool: '$' + (s.pool / 1000).toFixed(1) + 'k', holders: s.holders.toLocaleString(),
+      pickBack: () => this.setState({ side: 'back' }), pickFade: () => this.setState({ side: 'fade' }),
+      backTabBg: s.side === 'back' ? O : 'transparent', backTabColor: s.side === 'back' ? '#0B0B0F' : BONE,
+      fadeTabBg: s.side === 'fade' ? B : 'transparent', fadeTabColor: s.side === 'fade' ? '#0B0B0F' : BONE,
+      amounts: [5, 25, 100, 500].map(n => ({ label: '$' + n, bg: s.amount === n ? BONE : 'transparent', color: s.amount === n ? '#0B0B0F' : BONE, onClick: () => this.setState({ amount: n }) })),
+      estShares: shares.toFixed(1), payout: shares.toFixed(2),
+      ctaLabel: (s.side === 'back' ? 'Back' : 'Fade') + ' with $' + s.amount, ctaBg: s.side === 'back' ? O : B,
+      trade: () => {
+        if (!this.spend(s.amount)) return;
+        const K = s.side === 'back' ? 'BACK' : 'FADE', c = s.side === 'back' ? O : B;
+        this.setState(st => ({
+          open: [{ name: 'Afrobeats top 10', val: `${K} $${st.amount}`, color: c }, ...st.open],
+          activity: [{ k: K, c, t: '$' + st.amount, u: '@zk / now' }, ...st.activity].slice(0, 6),
+          pool: st.pool + st.amount, holders: st.holders + 1, held: true
+        }));
+        this.flash(`${K === 'BACK' ? 'Backed' : 'Faded'} with $${s.amount}. ${shares.toFixed(1)} shares. You can comment now.`);
+      },
+      comments: s.comments, canComment: s.held, commentDraft: s.commentDraft,
+      onCommentDraft: e => this.setState({ commentDraft: e.target.value }),
+      onCommentKey: e => {
+        if (e.key !== 'Enter' || !s.commentDraft.trim()) return;
+        const back = s.side === 'back';
+        this.setState(st => ({ comments: [...st.comments, { ini: 'ZK', user: '@zk', tag: (back ? 'BACK' : 'FADE') + ' / $' + st.amount, color: back ? O : B, text: st.commentDraft }], commentDraft: '' }));
+      },
+      activity: s.activity,
+
+      posLog: [
+        { a: 'BUY 250 MON', c: O, mc: 'MC $1.2M', t: 'Oct 02 14:21', r: '0x5a...9Qp', rc: MUT },
+        { a: 'STANCE POSTED', c: BONE, mc: 'MC $1.4M', t: 'Oct 04 08:55', r: 'public', rc: MUT },
+        { a: 'ADD 120 MON', c: O, mc: 'MC $3.1M', t: 'Oct 04 09:02', r: '0x3b...2mT', rc: MUT },
+        { a: 'TRIM 20%', c: B, mc: 'MC $11.6M', t: 'Oct 09 18:45', r: '9Lr...x4E', rc: MUT },
+        { a: 'HOLDING 80%', c: BONE, mc: 'MC $9.8M', t: 'now', r: 'no transfers out', rc: O }
+      ],
+      proofBack: () => { if (this.spend(5)) this.flash('Backed the call with $5 at 0.27'); },
+      proofFade: () => { if (this.spend(5)) this.flash('Faded the call with $5 at 0.73'); },
+      tailAmt: s.tailAmt, onTailAmt: e => this.setState({ tailAmt: e.target.value }),
+      tail: () => {
+        const n = parseFloat(s.tailAmt) || 0;
+        if (n <= 0) return this.flash('Enter an amount');
+        if (!this.spend(n)) return;
+        this.setState(st => ({ tailing: st.tailing + 1, tailVolK: st.tailVolK + n / 1000 }));
+        this.flash(`Tailing $GLOOP with ${n} USDC. Exit alerts on.`);
+      },
+      tailing: s.tailing, tailVol: '$' + s.tailVolK.toFixed(1).replace(/\.0$/, '') + 'k',
+
+      types: [['Opinion', 'Back or fade a take'], ['Proof', 'Backed by your wallet'], ['Perpetual', 'Never resolves'], ['Live Room', 'Tied to an event'], ['Duel', '1v1 with a judge'], ['Change My Mind', 'Fund a bounty']].map(([title, sub]) => {
+        const on = s.createType === title;
+        return { title, sub, bg: on ? O : '#15151C', border: on ? O : '#24242C', titleColor: on ? '#0B0B0F' : BONE, subColor: on ? '#3A1E08' : MUT, onClick: () => this.setState({ createType: title }) };
+      }),
+      createType: s.createType, isProofType,
+      draftLink: s.draftLink, onDraftLink: e => this.setState({ draftLink: e.target.value }),
+      draftStance: () => { this.setState({ stanceText: isProofType ? `${s.token} to 60M MC in 30 days. Not selling below 20M.` : 'Afrobeats will have 3 songs in the global top 10 by December.', topic: isProofType ? 'Crypto' : 'Music' }); this.flash('Drafted from link. Author credited.'); },
+      modeBuy: () => this.setState({ posMode: 'buy' }), modeAttach: () => this.setState({ posMode: 'attach' }),
+      buyBg: s.posMode === 'buy' ? O : 'transparent', buyColor: s.posMode === 'buy' ? '#0B0B0F' : BONE, buyBorder: s.posMode === 'buy' ? O : '#33333D',
+      attBg: s.posMode === 'attach' ? O : 'transparent', attColor: s.posMode === 'attach' ? '#0B0B0F' : BONE, attBorder: s.posMode === 'attach' ? O : '#33333D',
+      token: s.token, onToken: e => this.setState({ token: e.target.value }),
+      stanceText: s.stanceText, onStanceText: e => this.setState({ stanceText: e.target.value }),
+      topic: s.topic, onTopic: e => this.setState({ topic: e.target.value }),
+      criteria: textOk ? (isProofType ? 'Clear. Targets and hold floor are machine checkable.' : 'Clear. Add a source and a date so it resolves cleanly.') : 'Too short to resolve. Say what happens and by when.',
+      createSide: s.createSide, onCreateSide: e => this.setState({ createSide: e.target.value }),
+      stake: s.stake, onStake: e => this.setState({ stake: e.target.value }),
+      toggleMm: () => this.setState({ mm: !s.mm }), mmBg: s.mm ? O : 'transparent', mmMark: s.mm ? '✓' : '',
+      toggleTr: () => this.setState({ tr: !s.tr }), trBg: s.tr ? O : 'transparent', trMark: s.tr ? '✓' : '',
+      publish: () => {
+        if (!textOk) return this.flash('Write your stance first');
+        const n = (parseFloat(s.stake) || 0) + 0.5;
+        if (!this.spend(n)) return;
+        this.setState(st => ({ userCards: [{ type: st.createType, topic: st.topic, text: st.stanceText, stake: '$' + (parseFloat(st.stake) || 0) }, ...st.userCards], feedFilter: 'For You' }));
+        this.go('feed'); this.flash('Stance published. Market is live.');
+      },
+
+      followLabel: s.following ? 'Following' : 'Follow',
+      toggleFollow: () => { this.setState({ following: !s.following }); if (!s.following) this.flash('Following @ada.calls. Exit alerts on.'); },
+      shareReceipts: () => { try { navigator.clipboard.writeText('https://stance.click/ada.calls'); } catch (e) {} this.flash('Link copied: stance.click/ada.calls'); },
+      profileStats: [
+        { label: 'Calibration', val: '0.87', color: O, sub: 'Brier-based, 312 stances' },
+        { label: 'Caller Score', val: 'A', color: BONE, sub: '48 Proof Stances' },
+        { label: 'Earliness', val: '9.2d', color: BONE, sub: 'ahead of consensus' },
+        { label: 'Hold integrity', val: '91%', color: BONE, sub: 'Said vs Did' },
+        { label: 'Contrarian hits', val: '38', color: BONE, sub: 'right when crowd was wrong' },
+        { label: 'Minds changed', val: '6', color: BONE, sub: 'persuasion bounties won' }
+      ],
+      rFilters: ['All', 'Proof', 'Opinion', 'Duels'].map(l => ({ label: l, border: s.rFilter === l ? BONE : '#33333D', onClick: () => this.setState({ rFilter: l }) })),
+      receipts: rData.filter(r => s.rFilter === 'All' || r.type === s.rFilter),
+      expertise: [['Crypto', 0.91], ['Football', 0.82], ['Tech', 0.68], ['Music', 0.54]].map(([t, x]) => ({ t, v: x.toFixed(2), w: x * 100 + '%' })),
+
+      liveConv: s.liveConv, liveConvW: s.liveConv + '%', minute: s.minute, inRoom: s.inRoom.toLocaleString(),
+      livePts: pts(s.liveSeries, 800, 180, 30, 85),
+      livePosLabel: (homeSel ? 'HOME NEXT' : 'NOT HOME') + ' / $10',
+      homePrice: live.toFixed(2), notPrice: (1 - live).toFixed(2),
+      homeBg: homeSel ? O : 'transparent', homeColor: homeSel ? '#0B0B0F' : BONE, homeBorder: homeSel ? O : '#33333D',
+      notBg: !homeSel ? B : 'transparent', notColor: !homeSel ? '#0B0B0F' : BONE, notBorder: !homeSel ? B : '#33333D',
+      liveHome: () => this.setState({ liveSide: 'home' }), liveNot: () => this.setState({ liveSide: 'away' }),
+      flipSide: () => {
+        if (!this.spend(0.1)) return;
+        const to = homeSel ? 'AWAY' : 'HOME';
+        this.setState(st => ({ liveSide: homeSel ? 'away' : 'home', chat: [...st.chat, { u: '', side: '', c: MUT, t: `@zk flipped to ${to} / now`, mono: true }] }));
+        this.flash(`Flipped to ${to}. $0.10 fee paid to holders.`);
+      },
+      chat: s.chat.map(m => ({ ...m, font: m.mono ? "'JetBrains Mono',monospace" : 'inherit', tc: m.mono ? MUT : BONE })),
+      chatDraft: s.chatDraft, onChatDraft: e => this.setState({ chatDraft: e.target.value }),
+      onChatKey: e => {
+        if (e.key !== 'Enter' || !s.chatDraft.trim()) return;
+        this.setState(st => ({ chat: [...st.chat, { u: '@zk', side: homeSel ? 'HOME' : 'AWAY', c: homeSel ? O : B, t: st.chatDraft }], chatDraft: '' }));
+      },
+      rooms: [['Token launch: $FROG first hour', '812'], ['Spaces debate: is DeFi back?', '403'], ['Award night: best new artist', '1.1k']].map(([t, n]) => ({ t, n, onClick: () => this.flash('Joining ' + t) })),
+
+      tribeMsgs: s.tribeMsgs, tribeDraft: s.tribeDraft, onTribeDraft: e => this.setState({ tribeDraft: e.target.value }),
+      onTribeKey: e => { if (e.key === 'Enter' && s.tribeDraft.trim()) this.setState(st => ({ tribeMsgs: [...st.tribeMsgs, { u: '@zk', role: '', t: st.tribeDraft }], tribeDraft: '' })); },
+      sideBet: () => this.flash('Side-bet slip opened: ETH 0.55 / SOL 0.45'),
+      shareDuel: () => this.flash('Duel link copied'),
+      duelFriend: s.duelFriend, onDuelFriend: e => this.setState({ duelFriend: e.target.value }),
+      duelTake: s.duelTake, onDuelTake: e => this.setState({ duelTake: e.target.value }),
+      sendChallenge: () => {
+        if (!s.duelFriend.trim() || !s.duelTake.trim()) return this.flash('Add who and the take');
+        this.setState({ duelFriend: '', duelTake: '' }); this.flash(`Challenge sent to ${s.duelFriend}`);
+      },
+      args: s.args, argDraft: s.argDraft, onArgDraft: e => this.setState({ argDraft: e.target.value }),
+      submitArg: () => {
+        if (!s.argDraft.trim()) return this.flash('Make your case first');
+        if (!this.spend(2)) return;
+        this.setState(st => ({ args: [...st.args, { u: '@zk', r: 'reading', t: st.argDraft }], argDraft: '' }));
+        this.flash('Argument submitted. $2 entry paid.');
+      },
+      ...this.extra(s)
+    };
+  }
+}
+</script>
+</body>
+</html>
