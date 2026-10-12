@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Stance - Monad conviction markets</title>
-<meta name="description" content="Back, Fade and Tail thesis-backed calls on Monad. Build a public portfolio of verifiable judgment.">
+<meta name="description" content="Back or Fade a Stance, prove it on Monad, and create an attributed Trail Portfolio from any public allocation.">
 <script src="./support.js"></script>
 </head>
 <body>
@@ -150,7 +150,7 @@ select option{background:#15151C;color:#F1EFE8}
             <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px">
               <button onClick="{{ goProof }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Back the call</button>
               <button onClick="{{ goProof }}" style="height:50px;border:0;border-radius:10px;background:#5B8CFF;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#7AA1FF">Fade the call</button>
-              <button onClick="{{ goProof }}" style="height:50px;padding:0 22px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">Tail</button>
+              <button onClick="{{ goProof }}" style="height:50px;padding:0 22px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#1C1C23">Trail portfolio</button>
             </div>
           </div>
           </sc-if>
@@ -413,7 +413,7 @@ select option{background:#15151C;color:#F1EFE8}
             <p style="margin:0;font-size:15px;line-height:1.5;color:#D6D4CC">Buy $GLOOP inside Stance. Exit alerts switch on automatically, so you know the second the caller sells.</p>
             <span style="font-size:14px;color:#A9A7A0">Amount</span>
             <input value="{{ tailAmt }}" onChange="{{ onTailAmt }}" style="height:48px;padding:0 16px;border-radius:10px;border:1px solid #2A2A33;background:#0B0B0F;color:#F1EFE8;font-family:'JetBrains Mono',monospace;font-size:15px;outline:none">
-            <button onClick="{{ tail }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Tail with alerts</button>
+            <button onClick="{{ tail }}" style="height:50px;border:0;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-weight:600;font-size:16px;cursor:pointer" style-hover="background:#FF9D5C">Create Trail Portfolio</button>
             <span style="font-size:13px;color:#A9A7A0">Routed via best onchain liquidity. Not financial advice.</span>
           </div>
           <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:10px">

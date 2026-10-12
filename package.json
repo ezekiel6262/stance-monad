@@ -17,7 +17,8 @@
   },
   "scripts": {
     "build": "npm run build:wallet",
-    "build:wallet": "esbuild wallet.js --bundle --minify --platform=browser --format=iife --outfile=wallet.bundle.js"
+    "build:wallet": "esbuild wallet.js --bundle --minify --platform=browser --format=iife --outfile=wallet.bundle.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=20"

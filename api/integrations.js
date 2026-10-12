@@ -13,8 +13,8 @@ export default function handler(req, res) {
     realMoneyEnabled: process.env.REAL_MONEY_ENABLED === 'true',
     services: {
       monad: true,
-      perpl: true,
-      mera: true,
+      perpl: configured('PERPL_API_KEY'),
+      mera: configured('MERA_PROJECT_ID'),
       privy: configured('NEXT_PUBLIC_PRIVY_APP_ID') && configured('PRIVY_APP_SECRET'),
       nansen: configured('NANSEN_API_KEY'),
       kuru: true,

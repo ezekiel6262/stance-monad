@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "../src/StanceMarket.sol";
 import "../src/StancePortfolio.sol";
+import "../src/StancePortfolioRegistry.sol";
 
 interface VmTest {
     function warp(uint256) external;
@@ -99,5 +100,26 @@ contract StanceTest {
         portfolio.publishProofStance(id, keccak256("thesis"), address(token), 1e6, uint64(block.timestamp + 1 days), "ipfs://proof");
         vm.expectRevert(bytes("INVALID_TAIL"));
         portfolio.recordTail(address(this), id, 1e6);
+    }
+
+    function testTrailPortfolioPreservesLineage() public {
+        StancePortfolioRegistry registry = new StancePortfolioRegistry();
+        bytes32 source = keccak256("source-portfolio");
+        bytes32 trail = keccak256("trail-portfolio");
+        bytes32 stanceId = keccak256("source-stance");
+        registry.publishPortfolio(source, keccak256("stance"), keccak256("source-allocation"), "ipfs://source");
+        vm.prank(BACKER);
+        registry.publishTrailPortfolio(trail, source, stanceId, keccak256("plan"), keccak256("trail-allocation"), 100e6, 2, "ipfs://trail");
+        (address owner,, , bytes32 parent, bytes32 linkedStance,) = registry.portfolios(trail);
+        require(owner == BACKER, "TRAIL_OWNER");
+        require(parent == source && linkedStance == stanceId, "LINEAGE");
+    }
+
+    function testCannotTrailOwnPortfolio() public {
+        StancePortfolioRegistry registry = new StancePortfolioRegistry();
+        bytes32 source = keccak256("self-source");
+        registry.publishPortfolio(source, keccak256("stance"), keccak256("allocation"), "ipfs://source");
+        vm.expectRevert(bytes("SELF_TRAIL"));
+        registry.publishTrailPortfolio(keccak256("trail"), source, keccak256("stance-id"), keccak256("plan"), keccak256("allocation-2"), 1e6, 2, "ipfs://trail");
     }
 }
