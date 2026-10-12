@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Deploy Stance on Monad</title>
+  <style>
+    body{margin:0;background:#0b0b0f;color:#f1efe8;font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:100vh}
+    main{width:min(620px,calc(100% - 32px));background:#15151c;border:1px solid #2a2a33;border-radius:18px;padding:28px;box-sizing:border-box}
+    h1{margin:0 0 12px;font-size:28px}p{color:#b8b6ae;line-height:1.5}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    button{border:0;border-radius:999px;padding:12px 18px;background:#ff8a3d;color:#0b0b0f;font-weight:700;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}
+    #status{margin-top:20px;padding:14px;border-radius:12px;background:#0b0b0f;white-space:pre-wrap;word-break:break-word;font:13px ui-monospace,monospace}
+    a{color:#ff8a3d}.warning{color:#ffcb8f}
+  </style>
+</head>
+<body>
+<main>
+  <h1>Deploy Stance contracts</h1>
+  <p>This creates StanceMarket and StancePortfolio on Monad mainnet. The connected wallet becomes both owner and resolver. Two wallet approvals are required.</p>
+  <p class="warning">Deployment does not enable deposits or real-money trading. The resulting contracts will be verified before activation.</p>
+  <div class="row"><div id="connect-wallet-root"></div><button id="deploy" disabled>Deploy both contracts</button></div>
+  <div id="status">Connect the authorized wallet to begin.</div>
+</main>
+<script src="./wallet.bundle.js?v=20261012-contract-deploy"></script>
+<script>
+const AUTHORIZED = '0xB96f92E221935E4b0E0d7e927dF2E8e74147F785';
+const button = document.getElementById('deploy');
+const status = document.getElementById('status');
+const short = value => value ? value.slice(0, 8) + '…' + value.slice(-6) : '';
+const ready = setInterval(() => {
+  const account = window.StanceWallet?.getAccount?.();
+  button.disabled = !account || account.toLowerCase() !== AUTHORIZED.toLowerCase();
+  if (account && button.disabled) status.textContent = `Wrong wallet: ${short(account)}\nRequired: ${short(AUTHORIZED)}`;
+  if (account && !button.disabled && !status.dataset.started) status.textContent = `Ready: ${short(account)} on Monad mainnet.`;
+}, 500);
+
+button.addEventListener('click', async () => {
+  if (!confirm('Deploy both tested Stance contracts on Monad mainnet? Your wallet will ask for two approvals.')) return;
+  button.disabled = true;
+  status.dataset.started = '1';
+  try {
+    const account = window.StanceWallet.getAccount();
+    const response = await fetch(`/api/deployment-plan?wallet=${encodeURIComponent(account)}`, { cache: 'no-store' });
+    const plan = await response.json();
+    if (!response.ok || !plan.ok || plan.chainId !== 143) throw new Error(plan.error || 'Invalid deployment plan');
+    const storageKey = `stance-deployment-${account.toLowerCase()}`;
+    const deployed = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    for (const transaction of plan.transactions) {
+      if (deployed[transaction.kind]) continue;
+      status.textContent = `Approve ${transaction.kind} deployment in your wallet…`;
+      const hash = await window.StanceWallet.send({ data: transaction.data, value: '0x0' });
+      status.textContent = `${transaction.kind} submitted: ${hash}\nWaiting for Monad confirmation…`;
+      const receipt = await window.StanceWallet.waitForReceipt(hash);
+      if (!receipt.contractAddress) throw new Error(`${transaction.kind} receipt has no contract address`);
+      deployed[transaction.kind] = receipt.contractAddress;
+      localStorage.setItem(storageKey, JSON.stringify(deployed));
+    }
+    status.innerHTML = `Deployment complete.\nStanceMarket: <a target="_blank" href="https://monadscan.com/address/${deployed.StanceMarket}">${deployed.StanceMarket}</a>\nStancePortfolio: <a target="_blank" href="https://monadscan.com/address/${deployed.StancePortfolio}">${deployed.StancePortfolio}</a>`;
+    clearInterval(ready);
+  } catch (error) {
+    status.textContent = `Deployment stopped: ${error.message}`;
+    button.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
