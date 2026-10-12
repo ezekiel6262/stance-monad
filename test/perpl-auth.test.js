@@ -21,3 +21,12 @@ test('creates all Perpl Ed25519 authentication headers', () => {
   assert.ok(headers['X-API-Nonce']);
   assert.ok(headers['X-API-Signature']);
 });
+
+test('accepts whitespace around the Perpl hex seed', () => {
+  const headers = perplAuthHeaders({
+    apiKey: 'key',
+    secret: `  0x${'22'.repeat(32)}\n`,
+    target: '/v1/trading/positions'
+  });
+  assert.ok(headers['X-API-Signature']);
+});

@@ -8,7 +8,10 @@ export function perplCanonical({ chainId = 143, method = 'GET', target, timestam
 }
 
 export function perplAuthHeaders({ apiKey, secret, target, method = 'GET', body = '' }) {
-  const seed = Buffer.from(String(secret || '').replace(/^0x/, ''), 'hex');
+  const normalizedSecret = String(secret || '').trim().replace(/^0x/i, '');
+  const seed = /^[0-9a-f]{64}$/i.test(normalizedSecret)
+    ? Buffer.from(normalizedSecret, 'hex')
+    : Buffer.from(normalizedSecret, 'base64url');
   if (seed.length !== 32) throw new Error('invalid_perpl_secret');
 
   const timestamp = Date.now().toString();
