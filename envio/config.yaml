@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: stance-monad-indexer
+description: Positions, resolutions, claims, Proof Stances and Tail activity on Monad.
+contracts:
+  - name: StanceMarket
+    events:
+      - event: "MarketCreated(uint256 indexed marketId, bytes32 indexed thesisHash, uint64 closesAt)"
+      - event: "PositionTaken(uint256 indexed marketId, address indexed account, bool back, uint256 amount)"
+      - event: "MarketResolved(uint256 indexed marketId, uint8 outcome)"
+      - event: "Claimed(uint256 indexed marketId, address indexed account, uint256 amount)"
+  - name: StancePortfolio
+    events:
+      - event: "ProofStancePublished(address indexed author, bytes32 indexed stanceId, bytes32 indexed thesisHash, address token, uint256 positionSize, uint64 expiresAt, string evidenceURI)"
+      - event: "TailRecorded(address indexed follower, address indexed caller, bytes32 indexed stanceId, uint256 amount)"
+chains:
+  - id: 143
+    start_block: 0
+    contracts:
+      - name: StanceMarket
+        address: "0x0000000000000000000000000000000000000000" # replace after audited deployment
+      - name: StancePortfolio
+        address: "0x0000000000000000000000000000000000000000" # replace after audited deployment

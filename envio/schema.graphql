@@ -1,0 +1,37 @@
+type Market {
+  id: ID!
+  thesisHash: String!
+  closesAt: BigInt!
+  outcome: Int!
+  backPool: BigInt!
+  fadePool: BigInt!
+}
+
+type Position {
+  id: ID!
+  marketId: BigInt!
+  account: String!
+  side: String!
+  amount: BigInt!
+  transactionHash: String!
+  blockNumber: BigInt!
+}
+
+type ProofStance {
+  id: ID!
+  author: String!
+  thesisHash: String!
+  token: String!
+  positionSize: BigInt!
+  expiresAt: BigInt!
+  evidenceURI: String!
+}
+
+type Tail {
+  id: ID!
+  follower: String!
+  caller: String!
+  stanceId: String!
+  amount: BigInt!
+  transactionHash: String!
+}
