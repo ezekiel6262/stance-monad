@@ -1,8 +1,9 @@
 import { createPublicClient, encodeFunctionData, http, isAddress, parseAbi } from 'viem';
 import { monad } from 'viem/chains';
 import { json } from './_shared.js';
+import { KURU_ENTRYPOINT, isKuruEntrypoint, isKuruToken } from './_kuru.js';
 
-const SPENDER = process.env.KURU_SPENDER_ADDRESS || '0xb3e6778480b2E488385E8205eA05E20060B813cb';
+const SPENDER = KURU_ENTRYPOINT;
 const erc20 = parseAbi(['function allowance(address owner,address spender) view returns (uint256)', 'function approve(address spender,uint256 amount) returns (bool)']);
 
 export default async function handler(req, res) {
@@ -14,7 +15,7 @@ export default async function handler(req, res) {
   const tokenIn = String(req.body?.tokenIn || '');
   const amountRaw = String(req.body?.amountRaw || '');
   const swap = req.body?.swap;
-  if (!isAddress(wallet) || !isAddress(tokenIn) || !/^\d+$/.test(amountRaw) || !isAddress(swap?.to || '') || !/^0x[0-9a-fA-F]*$/.test(swap?.data || '')) {
+  if (!isAddress(wallet) || !isAddress(tokenIn) || !isKuruToken(tokenIn) || !/^\d+$/.test(amountRaw) || BigInt(amountRaw) <= 0n || !isAddress(swap?.to || '') || !isKuruEntrypoint(swap?.to) || !/^0x[0-9a-fA-F]+$/.test(swap?.data || '')) {
     return json(res, 400, { ok: false, error: 'invalid_transaction_request' });
   }
   try {

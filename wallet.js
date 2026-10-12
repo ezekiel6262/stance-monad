@@ -52,6 +52,21 @@ function PrivyWalletButton() {
           params: [{ ...transaction, from: active.address }]
         });
       },
+      waitForReceipt: async (hash, timeoutMs = 120000) => {
+        const active = walletRef.current;
+        if (!active) throw new Error('Connect a wallet before continuing');
+        const provider = await active.getEthereumProvider();
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+          const receipt = await provider.request({ method: 'eth_getTransactionReceipt', params: [hash] });
+          if (receipt) {
+            if (receipt.status === '0x0') throw new Error('Transaction reverted on Monad');
+            return receipt;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+        throw new Error('Transaction confirmation timed out');
+      },
       logout
     };
   }, [connectOrCreateWallet, logout, wallet]);
@@ -92,6 +107,18 @@ function injectedFallback() {
       if (!account) await connect();
       await switchToMonad(window.ethereum);
       return window.ethereum.request({ method: 'eth_sendTransaction', params: [{ ...transaction, from: account }] });
+    },
+    waitForReceipt: async (hash, timeoutMs = 120000) => {
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        const receipt = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] });
+        if (receipt) {
+          if (receipt.status === '0x0') throw new Error('Transaction reverted on Monad');
+          return receipt;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      throw new Error('Transaction confirmation timed out');
     }
   };
   button?.addEventListener('click', () => connect().catch(error => { button.title = error.message; }));

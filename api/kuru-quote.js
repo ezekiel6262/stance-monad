@@ -1,5 +1,6 @@
 import { isAddress } from 'viem';
 import { json } from './_shared.js';
+import { isKuruEntrypoint, isKuruToken } from './_kuru.js';
 
 const API_BASE = process.env.KURU_API_BASE_URL || 'https://ws.kuru.io/api';
 
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
   const tokenOut = String(req.body?.tokenOut || '');
   const amount = String(req.body?.amountRaw || '');
   const slippageTolerance = Math.min(Math.max(Number(req.body?.slippageBps) || 50, 1), 500);
-  if (![wallet, tokenIn, tokenOut].every(isAddress) || !/^\d+$/.test(amount) || BigInt(amount) <= 0n) {
+  if (![wallet, tokenIn, tokenOut].every(isAddress) || !isKuruToken(tokenIn) || !isKuruToken(tokenOut) || tokenIn.toLowerCase() === tokenOut.toLowerCase() || !/^\d+$/.test(amount) || BigInt(amount) <= 0n) {
     return json(res, 400, { ok: false, error: 'invalid_quote_request' });
   }
   try {
@@ -46,7 +47,9 @@ export default async function handler(req, res) {
     const quote = await quoteResponse.json().catch(() => null);
     if (!quoteResponse.ok || quote?.status !== 'success') throw new Error(quote?.message || `Kuru quote returned ${quoteResponse.status}`);
     const transaction = transactionFrom(quote);
-    if (!transaction) throw new Error('Kuru quote did not include a valid transaction');
+    if (!transaction || !isKuruEntrypoint(transaction.to || transaction.target || transaction.destination)) {
+      throw new Error('Kuru quote returned an unexpected transaction target');
+    }
     return json(res, 200, {
       ok: true, venue: 'kuru-flow', chainId: 143, wallet,
       outputRaw: String(quote.output), slippageBps: slippageTolerance,
