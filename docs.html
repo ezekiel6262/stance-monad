@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Stance Docs</title>
+  <meta name="description" content="Product and integration documentation for Stance on Monad.">
+  <style>
+    :root{color-scheme:dark;--bg:#0b0b0f;--card:#15151c;--line:#2a2a33;--text:#f1efe8;--muted:#a9a7a0;--orange:#ff8a3d;--blue:#5b8cff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 Inter,system-ui,sans-serif}a{color:var(--orange)}
+    header{position:sticky;top:0;background:rgba(11,11,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);z-index:2}
+    header div,main{width:min(920px,calc(100% - 32px));margin:auto}header div{height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{font-size:23px;font-weight:800;color:var(--text);text-decoration:none}.brand i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--orange);margin-left:4px}
+    .back{border:1px solid var(--line);border-radius:10px;padding:9px 14px;text-decoration:none;color:var(--text)}main{padding:60px 0 90px}
+    h1,h2{line-height:1.12;letter-spacing:-.025em}h1{font-size:clamp(38px,7vw,68px);margin:0 0 16px}h2{font-size:28px;margin:48px 0 14px}.lede{font-size:20px;color:#d6d4cc;max-width:760px}
+    .pill{display:inline-block;border:1px solid #6d3b1f;color:var(--orange);border-radius:999px;padding:5px 11px;font:12px ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}.card h3{margin:0 0 7px}.card p{margin:0;color:var(--muted)}
+    code{font:13px ui-monospace,monospace;background:#1c1c23;border:1px solid var(--line);padding:2px 6px;border-radius:5px}.status{display:flex;gap:10px;align-items:flex-start;margin:12px 0;color:#d6d4cc}.dot{width:9px;height:9px;border-radius:50%;background:var(--orange);margin-top:8px;flex:none}.locked .dot{background:var(--blue)}
+    footer{border-top:1px solid var(--line);padding-top:24px;margin-top:56px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header><div><a class="brand" href="/">stance<i></i></a><a class="back" href="/#/feed">Back to app</a></div></header>
+  <main>
+    <span class="pill">Monad mainnet · chain 143</span>
+    <h1>Conviction, with receipts.</h1>
+    <p class="lede">Stance is a Monad-native conviction market for publishing thesis-backed Stances, taking Back or Fade positions, trailing public portfolios, and building a permanent Said vs Did record.</p>
+
+    <h2>Core product</h2>
+    <div class="grid">
+      <article class="card"><h3>Stances</h3><p>Publish a clear thesis, a side, resolution criteria and optional on-chain proof.</p></article>
+      <article class="card"><h3>Proof Stances</h3><p>Attach wallet activity and position targets so conviction can be checked against behavior.</p></article>
+      <article class="card"><h3>Trail Portfolios</h3><p>Build an attributed portfolio plan from another caller's public allocation without copying custody.</p></article>
+      <article class="card"><h3>Receipts</h3><p>Track calibration, performance, exits, liquidation history and Said vs Did integrity.</p></article>
+    </div>
+
+    <h2>Live integration status</h2>
+    <div class="status"><span class="dot"></span><div><strong>Monad:</strong> live RPC and deployed Stance contracts on chain ID <code>143</code>.</div></div>
+    <div class="status"><span class="dot"></span><div><strong>Privy and Mera:</strong> embedded sign-in plus passkey-derived Trading, Proof and Trail accounts.</div></div>
+    <div class="status"><span class="dot"></span><div><strong>Agora:</strong> live AUSD balance reads for the connected Monad wallet.</div></div>
+    <div class="status"><span class="dot"></span><div><strong>Kuru:</strong> wallet-bound quote and transaction planning endpoints are connected.</div></div>
+    <div class="status"><span class="dot"></span><div><strong>Envio:</strong> Monad event indexing and position tracking are configured.</div></div>
+    <div class="status locked"><span class="dot"></span><div><strong>Perpl account analytics:</strong> awaiting production-origin whitelisting by Perpl. Public Monad context remains available.</div></div>
+    <div class="status locked"><span class="dot"></span><div><strong>Real-money execution:</strong> intentionally safety-locked until the contracts, wallet policies, routing and monitoring pass final review.</div></div>
+
+    <h2>Contracts</h2>
+    <p>StanceMarket: <a href="https://monadscan.com/address/0x6f9103855b1c699f3ce1eb5105415cd2f6ca796e">0x6f91…796e</a></p>
+    <p>StancePortfolio: <a href="https://monadscan.com/address/0x4e2c91fe23e2415d110c9af24474dc1b21c3aeb9">0x4e2c…aeb9</a></p>
+
+    <h2>Safety model</h2>
+    <p>Stance never asks the server to hold a user key. Live transactions must be simulated, checked for Monad chain ID and wallet ownership, then signed in the connected wallet. Demo balances and Play points are explicitly separate from on-chain assets.</p>
+
+    <footer>Stance on Monad · <a href="https://github.com/ezekiel6262/stance-monad">Source on GitHub</a></footer>
+  </main>
+</body>
+</html>

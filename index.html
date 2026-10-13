@@ -58,7 +58,7 @@ select option{background:#15151C;color:#F1EFE8}
 
     <sc-if value="{{ isFeed }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px">
-        <input placeholder="Search stances, tokens, people" style="flex:0 1 580px;min-width:0;height:48px;box-sizing:border-box;padding:0 18px;border-radius:10px;border:1px solid #2A2A33;background:#121218;color:#F1EFE8;font-size:15px;outline:none">
+        <input value="{{ searchQuery }}" onChange="{{ onSearch }}" placeholder="Search stances, tokens, people" aria-label="Search stances, tokens, people" style="flex:0 1 580px;min-width:0;height:48px;box-sizing:border-box;padding:0 18px;border-radius:10px;border:1px solid #2A2A33;background:#121218;color:#F1EFE8;font-size:15px;outline:none">
         <div style="display:flex;gap:10px;align-items:center">
           <button onClick="{{ goAlerts }}" style="height:44px;padding:0 18px;border-radius:10px;border:1px solid #33333D;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;display:flex;gap:8px;align-items:center" style-hover="background:#16161C">Alerts <span style="color:#FF8A3D">{{ unread }}</span></button>
           <div onClick="{{ goReceipts }}" style="width:44px;height:44px;border-radius:10px;background:#FF8A3D;color:#0B0B0F;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer">ZK</div>
@@ -90,6 +90,13 @@ select option{background:#15151C;color:#F1EFE8}
               <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:26px">Your Following feed is empty.</span>
               <span style="font-size:15px;color:#A9A7A0;max-width:420px;line-height:1.5">Follow callers and forecasters to see their stances here. Following also turns on exit alerts.</span>
               <button onClick="{{ showForYou }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;margin-top:8px">Browse top callers</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ searchEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px dashed #2F2F38;border-radius:16px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+              <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:26px">No matching stances yet.</span>
+              <span style="font-size:15px;color:#A9A7A0;max-width:420px;line-height:1.5">Try a token, topic, take or caller name.</span>
+              <button onClick="{{ clearSearch }}" style="height:48px;padding:0 18px;border:1px solid #33333D;border-radius:10px;background:transparent;color:#F1EFE8;font-weight:600;font-size:15px;cursor:pointer;margin-top:8px">Clear search</button>
             </div>
           </sc-if>
           <sc-if value="{{ isRightFeed }}" hint-placeholder-val="{{ false }}">
@@ -1076,7 +1083,7 @@ class Component extends DCLogic {
     walletMethod: 'card', fundAmt: 50, funding: false, linking: false, withdrawAmt: '',
     linked: [['0x4b...91e', 'Monad / main'], ['0x7fa...k2p', 'Monad / trading']],
     walletTx: [{ label: 'Conviction yield / Lagos best city', time: 'today 09:12', amt: '+$1.40', c: '#FF8A3D' }, { label: 'Card deposit via Mercuryo', time: 'Oct 08', amt: '+$200.00', c: '#FF8A3D' }, { label: 'Duel escrow / ETH vs SOL', time: 'Oct 02', amt: '-$150.00', c: '#A9A7A0' }],
-    view: 'feed', navKey: 'feed', balance: 248.30, toast: '',
+    view: 'feed', navKey: 'feed', balance: 248.30, toast: '', searchQuery: '',
     open: [{ name: 'Afrobeats top 10', val: 'BACK +18%', color: O }, { name: 'ETH 6k this Q', val: 'FADE -4%', color: B }, { name: 'Lagos best city', val: 'yield +$1.40', color: O }],
     feedFilter: 'For You', userCards: [],
     side: 'back', amount: 25, range: '1W', pool: 41200, holders: 1204, held: false, commentDraft: '',
@@ -1111,6 +1118,13 @@ class Component extends DCLogic {
   };
 
   componentDidMount() {
+    const route = this.routeFromHash();
+    if (route !== this.state.view) this.setState({ view: route, navKey: route });
+    this.onHashChange = () => {
+      const next = this.routeFromHash();
+      if (next !== this.state.view) this.setState({ view: next, navKey: next });
+    };
+    window.addEventListener('hashchange', this.onHashChange);
     this.tick = setInterval(() => {
       if (this.state.view !== 'live') return;
       this.setState(s => {
@@ -1119,7 +1133,12 @@ class Component extends DCLogic {
       });
     }, 2000);
   }
-  componentWillUnmount() { clearInterval(this.tick); clearTimeout(this.tt); }
+  componentWillUnmount() { clearInterval(this.tick); clearTimeout(this.tt); window.removeEventListener('hashchange', this.onHashChange); }
+
+  routeFromHash() {
+    const route = window.location.hash.replace(/^#\/?/, '').split('/')[0];
+    return ['feed', 'live', 'proof', 'tribes', 'receipts', 'alerts', 'wallet', 'create'].includes(route) ? route : 'feed';
+  }
 
   stanceOf(id) { return STANCES[id] || this.state.userStances[id] || STANCES.afro; }
   openStance(id, side) { this.setState(side ? { stanceId: id, side } : { stanceId: id }); this.go('opinion', 'feed'); }
@@ -1153,9 +1172,18 @@ class Component extends DCLogic {
     const series = base.map(x => Math.max(3, Math.min(97, x + off)));
     const mode = this.mode(), geo = this.geo(), play = mode === 'Play';
     const unreadN = ALERTS.filter(a => !s.readAlerts.includes(a.id)).length;
-    const F = s.feedFilter, fol = s.followed;
-    const showFor = (tags, who) => F === 'For You' || (F === 'Following' ? fol.includes(who) : tags.includes(F));
-    const sh = { o: showFor(['Music'], 'temi'), p: showFor(['Proof', 'Crypto'], 'kelechi'), l: showFor(['Live', 'Football'], '-'), c: showFor(['Crypto'], 'ada'), pe: showFor(['Perpetual'], 'kemi') };
+    const F = s.feedFilter, fol = s.followed, query = s.searchQuery.trim().toLowerCase();
+    const showFor = (tags, who, searchable) => {
+      const filterMatch = F === 'For You' || (F === 'Following' ? fol.includes(who) : tags.includes(F));
+      return filterMatch && (!query || searchable.toLowerCase().includes(query));
+    };
+    const sh = {
+      o: showFor(['Music'], 'temi', 'afrobeats global top 10 music temi sounds'),
+      p: showFor(['Proof', 'Crypto'], 'kelechi', '$gloop 60m market cap proof crypto kelechi trench trail portfolio'),
+      l: showFor(['Live', 'Football'], '-', 'lagos derby home scores next live football room'),
+      c: showFor(['Crypto'], 'ada', 'most l2s irrelevant change my mind crypto ada calls'),
+      pe: showFor(['Perpetual'], 'kemi', 'lagos best city africa perpetual kemi')
+    };
     const navDef = [['feed', 'Feed', 'feed'], ['live', 'Live Rooms', 'live', '3 LIVE'], ['proof', 'Proof Stances', 'proof'], ['tribes', 'Tribes and Duels', 'tribes'], ['cmm', 'Change My Mind', 'tribes'], ['receipts', 'My Receipts', 'receipts'], ['alerts', 'Alerts', 'alerts', unreadN ? String(unreadN) : ''], ['wallet', 'Wallet', 'wallet'], ['docs', 'Docs']];
     const tr = TRIBES[s.tribeId] || TRIBES.afroB, trId = TRIBES[s.tribeId] ? s.tribeId : 'afroB';
     const trSideColor = tr.side === 'BACK' ? O : B, trUnlocked = s.joined.includes(trId);
@@ -1182,14 +1210,18 @@ class Component extends DCLogic {
 
     return {
       nav: navDef.map(([k, label, view, badge]) => ({ label, badge: badge || '', bg: s.navKey === k ? '#1A130C' : 'transparent', color: s.navKey === k ? O : BONE,
-        onClick: () => k === 'docs' ? (window.location.href = 'Stance Docs.dc.html') : this.go(view, k) })),
+        onClick: () => k === 'docs' ? (window.location.href = '/docs.html') : this.go(view, k) })),
       modeLabel: play ? 'Play' : 'Real', points: s.points.toLocaleString(), unread: unreadN,
       goAlerts: () => this.go('alerts'), goWallet: () => this.go('wallet'),
       isWallet: s.view === 'wallet', isAlerts: s.view === 'alerts', isRes: s.view === 'res', isProfile: s.view === 'profile', isTribe: s.view === 'tribe',
       // feed
       filters: ['For You', 'Following', 'Proof', 'Live', 'Perpetual', 'Tribes', 'Right When You Were Wrong', 'Crypto', 'Football', 'Music'].map(l => ({
         label: l, bg: F === l ? BONE : 'transparent', color: F === l ? '#0B0B0F' : BONE, border: F === l ? BONE : '#33333D', onClick: () => this.setState({ feedFilter: l }) })),
+      searchQuery: s.searchQuery,
+      onSearch: e => this.setState({ searchQuery: e.target.value }),
+      clearSearch: () => this.setState({ searchQuery: '' }),
       showOpinion: sh.o, showProof: sh.p, showLive: sh.l, showCmm: sh.c, showPerp: sh.pe,
+      searchEmpty: Boolean(s.searchQuery.trim()) && !Object.values(sh).some(Boolean),
       feedEmpty: F === 'Following' && !Object.values(sh).some(Boolean), showForYou: () => this.setState({ feedFilter: 'For You' }),
       isRightFeed: F === 'Right When You Were Wrong', isTribeFeed: F === 'Tribes',
       rightList: [['mira', '@mira_onchain', 'Fade: $FROG holds 50M MC', 'Faded at 0.70 / you backed / she made +$340'], ['kelechi', '@kelechi_trench', 'BTC dominance below 55% in Q3', 'Faded at 0.58 / you backed / Caller A-'], ['bisi', '@0xbisi', 'Spurs finish above Chelsea', 'Backed at 0.41 / you faded']].map(([id, u, stance, meta]) => ({
@@ -1335,7 +1367,14 @@ class Component extends DCLogic {
   }
 
   flash(msg) { clearTimeout(this.tt); this.setState({ toast: msg }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2600); }
-  go(view, navKey) { this.setState({ view, navKey: navKey || view }); window.scrollTo(0, 0); }
+  go(view, navKey) {
+    this.setState({ view, navKey: navKey || view });
+    if (['feed', 'live', 'proof', 'tribes', 'receipts', 'alerts', 'wallet', 'create'].includes(view)) {
+      const nextHash = '#/' + view;
+      if (window.location.hash !== nextHash) window.history.pushState(null, '', nextHash);
+    }
+    window.scrollTo(0, 0);
+  }
   geo() { return (this.props.region ?? 'Allowed') === 'Geofenced'; }
   mode() { return this.geo() ? 'Play' : this.state.mode; }
   spend(n) {
@@ -1355,7 +1394,7 @@ class Component extends DCLogic {
     const nav = navDef.map(([k, label, view, badge]) => ({
       label, badge: badge || '',
       bg: s.navKey === k ? '#1A130C' : 'transparent', color: s.navKey === k ? O : BONE,
-      onClick: () => k === 'docs' ? (window.location.href = 'Stance Docs.dc.html') : this.go(view, k)
+      onClick: () => k === 'docs' ? (window.location.href = '/docs.html') : this.go(view, k)
     }));
     const F = s.feedFilter;
     const show = (tags) => F === 'For You' || F === 'Following' || tags.includes(F);
