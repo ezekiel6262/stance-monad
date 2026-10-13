@@ -24,6 +24,7 @@ export default function handler(req, res) {
       nansen: configured('NANSEN_API_KEY'),
       kuru: true,
       envio: configured('ENVIO_GRAPHQL_URL') || configured('ENVIO_API_TOKEN'),
+      chainlinkCreSimulated: true,
       chainlinkCre: configured('CRE_WORKFLOW_ID'),
       contracts: configured('STANCE_MARKET_ADDRESS') && configured('STANCE_PORTFOLIO_ADDRESS')
     }

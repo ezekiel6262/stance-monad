@@ -1,2 +1,4 @@
 node_modules/
 wallet.bundle.js
+stance-cre/.tools/
+stance-cre/**/.cre_build_tmp.*

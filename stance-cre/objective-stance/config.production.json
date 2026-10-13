@@ -1,0 +1,9 @@
+{
+  "schedule": "0 */5 * * * *",
+  "stanceId": "configure-before-deployment",
+  "metric": "CONFIGURE_ME",
+  "operator": ">=",
+  "threshold": 0,
+  "quorum": 2,
+  "observations": []
+}

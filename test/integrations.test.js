@@ -30,6 +30,7 @@ test('reports public Perpl data separately from wallet account access', () => {
   assert.equal(data.services.agora, true);
   assert.equal(data.services.perplAccount, false);
   assert.equal(data.services.mera, true);
+  assert.equal(data.services.chainlinkCreSimulated, true);
 
   if (priorKey === undefined) delete process.env.PERPL_API_KEY;
   else process.env.PERPL_API_KEY = priorKey;

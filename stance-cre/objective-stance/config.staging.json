@@ -1,0 +1,13 @@
+{
+  "schedule": "*/30 * * * * *",
+  "stanceId": "btc-above-100k-2026-10-13",
+  "metric": "BTC_USD",
+  "operator": ">=",
+  "threshold": 100000,
+  "quorum": 2,
+  "observations": [
+    { "source": "market-a", "value": 101200, "observedAt": "2026-10-13T00:00:00Z" },
+    { "source": "market-b", "value": 100900, "observedAt": "2026-10-13T00:00:02Z" },
+    { "source": "market-c", "value": 99800, "observedAt": "2026-10-13T00:00:03Z" }
+  ]
+}
