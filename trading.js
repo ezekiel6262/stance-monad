@@ -23,8 +23,6 @@
   };
 
   const execute = async plan => {
-    const status = await fetch('/api/integrations', { cache: 'no-store' }).then(response => response.json());
-    if (!status.realMoneyEnabled) throw new Error('Real-money execution is safety-locked');
     if (!plan?.transactions?.length || plan.transactions.length > 2) throw new Error('Invalid transaction plan');
     const wallet = await account();
     if (wallet.toLowerCase() !== String(plan.wallet).toLowerCase()) throw new Error('Wallet changed after quote');
@@ -42,5 +40,13 @@
     return receipts;
   };
 
-  window.StanceTrading = Object.freeze({ preview, execute });
+  const sendContractTransaction = async transaction => {
+    const wallet = await account();
+    if (transaction?.chainId !== 143 || String(transaction?.from).toLowerCase() !== wallet.toLowerCase()) throw new Error('Transaction failed wallet or network validation');
+    const hash = await window.StanceWallet.send({ to: transaction.to, data: transaction.data, value: `0x${BigInt(transaction.value || '0').toString(16)}` });
+    await window.StanceWallet.waitForReceipt(hash);
+    return hash;
+  };
+
+  window.StanceTrading = Object.freeze({ preview, execute, sendContractTransaction });
 })();

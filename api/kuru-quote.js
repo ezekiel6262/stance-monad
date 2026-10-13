@@ -50,10 +50,11 @@ export default async function handler(req, res) {
     if (!transaction || !isKuruEntrypoint(transaction.to || transaction.target || transaction.destination)) {
       throw new Error('Kuru quote returned an unexpected transaction target');
     }
+    const calldata = transaction.data || transaction.calldata || transaction.input;
     return json(res, 200, {
       ok: true, venue: 'kuru-flow', chainId: 143, wallet,
       outputRaw: String(quote.output), slippageBps: slippageTolerance,
-      transaction: { from: wallet, to: transaction.to || transaction.target || transaction.destination, data: transaction.data || transaction.calldata || transaction.input, value: String(transaction.value || '0'), gas: transaction.gas ? String(transaction.gas) : undefined }
+      transaction: { from: wallet, to: transaction.to || transaction.target || transaction.destination, data: calldata.startsWith('0x') ? calldata : `0x${calldata}`, value: String(transaction.value || '0'), gas: transaction.gas ? String(transaction.gas) : undefined }
     });
   } catch (error) {
     return json(res, 502, { ok: false, error: 'kuru_quote_failed', detail: error.message });

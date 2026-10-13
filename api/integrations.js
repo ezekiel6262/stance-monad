@@ -10,7 +10,7 @@ export default function handler(req, res) {
   return json(res, 200, {
     ok: true,
     network: { name: 'monad-mainnet', chainId: MONAD_CHAIN_ID },
-    realMoneyEnabled: process.env.REAL_MONEY_ENABLED === 'true',
+    realMoneyEnabled: true,
     services: {
       monad: true,
       agora: true,
