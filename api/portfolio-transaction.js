@@ -18,7 +18,7 @@ export function buildPortfolioTransaction(body) {
     const positionSize = String(body.positionSize || '');
     const expiresAt = Number(body.expiresAt);
     const evidenceURI = String(body.evidenceURI || '').trim();
-    if (thesis.length < 12 || thesis.length > 1000) throw new Error('Stance must be 12–1000 characters');
+    if (thesis.length < 12 || thesis.length > 1000) throw new Error('Stance must be 12 to 1000 characters');
     if (!isAddress(token) || !positiveInteger(positionSize)) throw new Error('Token and position size are required');
     if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) throw new Error('Expiry must be in the future');
     if (!/^https:\/\//i.test(evidenceURI) || evidenceURI.length > 500) throw new Error('Evidence must be a secure transaction or position URL');

@@ -61,8 +61,8 @@ export async function readLiveState(wallet) {
   };
   const walletFilter = wallet || undefined;
   const [proofs, tails, positions, resolutions, claims] = await Promise.all([
-    eventQuery(PORTFOLIO, portfolioAbi, 'ProofStancePublished', wallet ? { author: walletFilter } : undefined),
-    eventQuery(PORTFOLIO, portfolioAbi, 'TailRecorded', wallet ? { follower: walletFilter } : undefined),
+    eventQuery(PORTFOLIO, portfolioAbi, 'ProofStancePublished'),
+    eventQuery(PORTFOLIO, portfolioAbi, 'TailRecorded'),
     eventQuery(MARKET, marketAbi, 'PositionTaken', wallet ? { account: walletFilter } : undefined),
     eventQuery(MARKET, marketAbi, 'MarketResolved'),
     eventQuery(MARKET, marketAbi, 'Claimed', wallet ? { account: walletFilter } : undefined)
