@@ -22,8 +22,8 @@ const MONAD = defineChain({
 });
 
 const buttonStyle = {
-  border: '1px solid #FF8A3D', borderRadius: 999, padding: '5px 11px',
-  background: 'transparent', color: '#FF8A3D', font: 'inherit', cursor: 'pointer'
+  width: '100%', border: '1px solid #34343E', borderRadius: 9, padding: '8px 10px',
+  background: '#0F0F14', color: '#F1EFE8', font: 'inherit', cursor: 'pointer'
 };
 
 const short = address => `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -157,7 +157,7 @@ function MeraWalletButton() {
 
   useEffect(() => () => sessionRef.current?.end(), []);
 
-  return React.createElement('span', { style: { display: 'inline-flex', gap: 6, alignItems: 'center' } },
+  return React.createElement('span', { style: { display: 'flex', width: '100%', gap: 6, alignItems: 'stretch', flexDirection: 'column' } },
     React.createElement('button', {
       id: 'mera-wallet',
       style: { ...buttonStyle, borderColor: '#8B7CFF', color: '#B9B0FF' },
@@ -170,7 +170,7 @@ function MeraWalletButton() {
       onChange: switchRole,
       disabled: busy,
       title: 'Choose the Monad account derived from this passkey',
-      style: { background: '#111118', color: '#D6D4CC', border: '1px solid #34343E', borderRadius: 999, padding: '5px 8px', font: 'inherit' }
+        style: { width: '100%', background: '#111118', color: '#D6D4CC', border: '1px solid #34343E', borderRadius: 9, padding: '7px 8px', font: 'inherit' }
     }, accounts.map((item, index) => React.createElement('option', { key: item.role, value: index }, item.role))) : null
   );
 }
@@ -316,7 +316,7 @@ async function start() {
           supportedChains: [MONAD],
           embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } }
         }
-      }, React.createElement('span', { style: { display: 'inline-flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' } },
+      }, React.createElement('div', { style: { display: 'grid', width: '100%', gap: 7 } },
         React.createElement(MeraWalletButton),
         React.createElement(PrivyWalletButton)
       ))
