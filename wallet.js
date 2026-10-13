@@ -1,7 +1,17 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { PrivyProvider, useConnectOrCreateWallet, usePrivy, useWallets } from '@privy-io/react-auth';
-import { defineChain } from 'viem';
+import { createPublicClient, createWalletClient, defineChain, http } from 'viem';
+import {
+  createPasskeyWithPrfOutput,
+  createSecp256k1SigningSession,
+  getPasskeyPrfOutput,
+  isMeraError
+} from '@category-labs/mera';
+import { toViemAccount } from '@category-labs/mera/viem';
+import { HDKey } from '@scure/bip32';
+import { entropyToMnemonic, mnemonicToSeedSync } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english';
 
 const MONAD = defineChain({
   id: 143,
@@ -17,6 +27,145 @@ const buttonStyle = {
 };
 
 const short = address => `${address.slice(0, 6)}…${address.slice(-4)}`;
+const MERA_CREDENTIAL = 'stance.mera.credential';
+const MERA_USER = 'stance.mera.user';
+const MERA_ROLES = ['Trading', 'Proof', 'Trail'];
+
+function deriveMeraKey(prfOutput, index) {
+  const seed = mnemonicToSeedSync(entropyToMnemonic(prfOutput, wordlist));
+  const node = HDKey.fromMasterSeed(seed).derive(`m/44'/60'/0'/0/${index}`);
+  seed.fill(0);
+  if (!node.privateKey) throw new Error('Mera account derivation failed');
+  return node.privateKey;
+}
+
+function meraMessage(error) {
+  if (!isMeraError(error)) return error?.message || 'Mera passkey operation failed';
+  if (error.code === 'PRF_UNAVAILABLE') return 'This passkey provider does not support secure Mera derivation.';
+  if (error.code === 'CRYPTO_UNAVAILABLE') return 'Mera needs a secure HTTPS browser session.';
+  if (error.code === 'PASSKEY_OPERATION_FAILED') return 'The passkey prompt was cancelled or failed.';
+  return 'Mera passkey operation failed.';
+}
+
+function installMeraWallet(active, session) {
+  const walletClient = createWalletClient({ account: active.account, chain: MONAD, transport: http() });
+  const publicClient = createPublicClient({ chain: MONAD, transport: http() });
+  window.StanceWalletProvider = 'mera';
+  window.StanceWallet = {
+    chainId: MONAD.id,
+    provider: 'mera',
+    role: active.role,
+    getAccount: () => active.account.address,
+    connect: async () => active.account.address,
+    send: async transaction => {
+      const { from, chainId, ...request } = transaction;
+      return walletClient.sendTransaction(request);
+    },
+    waitForReceipt: async (hash, timeoutMs = 120000) => {
+      const receipt = await publicClient.waitForTransactionReceipt({ hash, timeout: timeoutMs });
+      if (receipt.status !== 'success') throw new Error('Transaction reverted on Monad');
+      return receipt;
+    },
+    logout: () => {
+      session.end();
+      window.StanceWallet = null;
+      window.StanceWalletProvider = null;
+    }
+  };
+}
+
+function MeraWalletButton() {
+  const [accounts, setAccounts] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const sessionRef = useRef(null);
+
+  const activate = (nextAccounts, index, nextSession) => {
+    sessionRef.current?.end();
+    sessionRef.current = nextSession;
+    setAccounts(nextAccounts);
+    setActiveIndex(index);
+    installMeraWallet(nextAccounts[index], nextSession);
+  };
+
+  const connect = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const stored = localStorage.getItem(MERA_CREDENTIAL);
+      const known = stored ? JSON.parse(stored) : null;
+      const result = known
+        ? await getPasskeyPrfOutput({ rpId: location.hostname, credential: known })
+        : await createPasskeyWithPrfOutput({
+            rp: { id: location.hostname, name: 'Stance on Monad' },
+            user: {
+              name: localStorage.getItem(MERA_USER) || `stance-${crypto.randomUUID()}`,
+              displayName: 'Stance trader'
+            }
+          });
+
+      const credential = { credentialId: result.credentialId, transports: result.transports };
+      localStorage.setItem(MERA_CREDENTIAL, JSON.stringify(credential));
+      if (!localStorage.getItem(MERA_USER)) localStorage.setItem(MERA_USER, `stance-${result.credentialId.slice(0, 8)}`);
+
+      const derived = MERA_ROLES.map((role, index) => {
+        const privateKey = deriveMeraKey(result.prfOutput, index);
+        const tempSession = createSecp256k1SigningSession({ privateKey });
+        privateKey.fill(0);
+        const account = toViemAccount(tempSession);
+        if (index !== 0) tempSession.end();
+        return { role, address: account.address, account, session: index === 0 ? tempSession : null };
+      });
+      result.prfOutput.fill(0);
+      activate(derived, 0, derived[0].session);
+    } catch (cause) {
+      setError(meraMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const switchRole = async event => {
+    const index = Number(event.target.value);
+    setBusy(true);
+    setError('');
+    try {
+      const known = JSON.parse(localStorage.getItem(MERA_CREDENTIAL));
+      const result = await getPasskeyPrfOutput({ rpId: location.hostname, credential: known });
+      const privateKey = deriveMeraKey(result.prfOutput, index);
+      result.prfOutput.fill(0);
+      const nextSession = createSecp256k1SigningSession({ privateKey });
+      privateKey.fill(0);
+      const account = toViemAccount(nextSession);
+      const nextAccounts = accounts.map((item, itemIndex) => itemIndex === index ? { ...item, account, address: account.address } : item);
+      activate(nextAccounts, index, nextSession);
+    } catch (cause) {
+      setError(meraMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => () => sessionRef.current?.end(), []);
+
+  return React.createElement('span', { style: { display: 'inline-flex', gap: 6, alignItems: 'center' } },
+    React.createElement('button', {
+      id: 'mera-wallet',
+      style: { ...buttonStyle, borderColor: '#8B7CFF', color: '#B9B0FF' },
+      disabled: busy,
+      title: error || 'One Mera passkey derives separate Trading, Proof, and Trail accounts on Monad',
+      onClick: connect
+    }, busy ? 'Passkey…' : accounts.length ? `Mera ${short(accounts[activeIndex].address)}` : 'Mera Passkey'),
+    accounts.length ? React.createElement('select', {
+      value: activeIndex,
+      onChange: switchRole,
+      disabled: busy,
+      title: 'Choose the Monad account derived from this passkey',
+      style: { background: '#111118', color: '#D6D4CC', border: '1px solid #34343E', borderRadius: 999, padding: '5px 8px', font: 'inherit' }
+    }, accounts.map((item, index) => React.createElement('option', { key: item.role, value: index }, item.role))) : null
+  );
+}
 
 function PrivyWalletButton() {
   const { ready, authenticated, logout } = usePrivy();
@@ -27,6 +176,7 @@ function PrivyWalletButton() {
     onSuccess: async ({ wallet: connected }) => {
       walletRef.current = connected;
       await connected.switchChain(MONAD.id);
+      window.StanceWalletProvider = 'privy';
     }
   });
 
@@ -36,6 +186,7 @@ function PrivyWalletButton() {
   }, [wallet]);
 
   useEffect(() => {
+    if (window.StanceWalletProvider === 'mera') return;
     window.StanceWallet = {
       chainId: MONAD.id,
       getAccount: () => walletRef.current?.address || null,
@@ -70,6 +221,7 @@ function PrivyWalletButton() {
       },
       logout
     };
+    window.StanceWalletProvider = 'privy';
   }, [connectOrCreateWallet, logout, wallet]);
 
   const disabled = false;
@@ -77,7 +229,10 @@ function PrivyWalletButton() {
   return React.createElement('button', {
     id: 'connect-wallet', style: buttonStyle, disabled,
     title: wallet ? 'Privy wallet connected on Monad' : 'Sign in with email, passkey, or an external wallet',
-    onClick: () => connectOrCreateWallet().catch(error => console.error('Privy wallet connection failed', error))
+    onClick: () => {
+      window.StanceWalletProvider = 'privy';
+      connectOrCreateWallet().catch(error => console.error('Privy wallet connection failed', error));
+    }
   }, label);
 }
 
@@ -148,7 +303,10 @@ async function start() {
           supportedChains: [MONAD],
           embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } }
         }
-      }, React.createElement(PrivyWalletButton))
+      }, React.createElement('span', { style: { display: 'inline-flex', gap: 7, alignItems: 'center', flexWrap: 'wrap' } },
+        React.createElement(MeraWalletButton),
+        React.createElement(PrivyWalletButton)
+      ))
     );
   } catch (error) {
     console.warn('Privy unavailable; using injected wallet fallback', error);

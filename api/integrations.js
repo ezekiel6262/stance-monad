@@ -17,7 +17,8 @@ export default function handler(req, res) {
       // analytics require a wallet-scoped Ed25519 API key and stay separate.
       perpl: true,
       perplAccount: configured('PERPL_API_KEY') && configured('PERPL_API_KEY_SECRET'),
-      mera: configured('MERA_PROJECT_ID'),
+      // Mera is a self-custodial browser SDK and does not require a project ID.
+      mera: true,
       privy: configured('NEXT_PUBLIC_PRIVY_APP_ID') && configured('PRIVY_APP_SECRET'),
       nansen: configured('NANSEN_API_KEY'),
       kuru: true,

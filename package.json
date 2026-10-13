@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@category-labs/mera": "^0.2.0",
     "@privy-io/react-auth": "3.48.1",
+    "@scure/bip32": "^1.7.0",
+    "@scure/bip39": "^1.6.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "viem": "^2.38.5"
@@ -17,11 +20,10 @@
   },
   "scripts": {
     "build": "npm run build:wallet",
-    "build:wallet": "esbuild wallet.js --bundle --minify --platform=browser --format=iife --outfile=wallet.bundle.js",
+    "build:wallet": "esbuild ./wallet.js --bundle --minify --platform=browser --format=iife --outfile=./wallet.bundle.js",
     "test": "node --test"
   },
   "engines": {
     "node": ">=20"
   }
 }
-
