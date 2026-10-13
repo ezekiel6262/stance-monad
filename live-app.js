@@ -12,6 +12,7 @@
   let tradeMode = 'spot';
   let publishType = 'spot';
   let appMode = localStorage.getItem('stance.mode') || 'play';
+  let profileEditing = false;
   let state = { loading: true, error: '', data: null, wallet: null };
   const nav = [['feed', 'Feeds'], ['trade', 'Trade'], ['markets', 'Market'], ['publish', 'Publish a Stance'], ['trails', 'Portfolios'], ['receipts', 'My Activity'], ['alerts', 'Alerts'], ['wallet', 'Wallet'], ['integrations', 'Integrations']];
   const empty = (title, body, action = '') => `<div class="empty"><h2>${title}</h2><p>${body}</p>${action}</div>`;
@@ -106,12 +107,29 @@
     const c = state.data?.contracts || {};
     return `<div class="title"><div><p class="eyebrow">LIVE INFRASTRUCTURE</p><h1>What is actually connected.</h1><p>Provider status without bounty-label theatre.</p></div></div><div class="list"><a class="row" href="${explorer('address', c.market)}" target="_blank"><div><b>Market</b><p>Back/Fade pools, resolution and claims</p></div><span>${short(c.market)} ↗</span></a><a class="row" href="${explorer('address', c.portfolio)}" target="_blank"><div><b>Portfolio</b><p>Verified Stances and Trail attribution</p></div><span>${short(c.portfolio)} ↗</span></a><div class="row"><div><b>Kuru</b><p>Live quote, approval, and swap signing</p></div><span>LIVE</span></div><div class="row"><div><b>Perpl</b><p>Public data live; account/order API awaits production-origin authorization</p></div><span>PROVIDER BLOCKED</span></div><div class="row"><div><b>Privy + Mera</b><p>Authentication and role-separated wallets</p></div><span>LIVE</span></div></div>`;
   }
+  function storedProfiles() { return JSON.parse(localStorage.getItem('stance.profiles') || '{}'); }
+  function profileRecord(address) {
+    const key = String(address || 'guest').toLowerCase(), saved = storedProfiles()[key] || {};
+    return { username: saved.username || (address ? `user_${address.slice(2, 8).toLowerCase()}` : 'new_caller'), bio: saved.bio || 'Building a public record of what I believe and what I do.', avatar: saved.avatar || '' };
+  }
+  function userDashboard(address, own = false) {
+    const identity = address || state.wallet || '', record = profileRecord(identity), same = value => String(value || '').toLowerCase() === String(identity).toLowerCase();
+    const stances = feedEntries().filter(item => same(item.author) || (own && item.kind === 'play'));
+    const proofs = (state.data?.proofs || []).filter(item => same(item.author));
+    const tails = (state.data?.tails || []).filter(item => same(item.follower));
+    const positions = own ? (state.data?.positions || []) : [];
+    const receipts = [...proofs.map(item => ({ tag: Number(item.expiresAt) > Date.now() / 1000 ? 'OPEN' : 'CLOSED', title: localTheses()[item.thesisHash]?.thesis || `Stance ${short(item.stanceId)}`, meta: `Onchain / trade linked / ${date(Number(item.expiresAt))}`, value: short(item.transactionHash) })), ...tails.map(item => ({ tag: 'TRAILED', title: `Portfolio trailing ${short(item.caller)}`, meta: `Attribution preserved / ${money(item.amount)}`, value: short(item.transactionHash) })), ...positions.map(item => ({ tag: item.back ? 'BACK' : 'FADE', title: `Stance Market ${item.marketId}`, meta: `${money(item.amount)} / wallet confirmed`, value: short(item.transactionHash) }))];
+    if (own) receipts.push(...playProfile().activity.slice(0, 8).map(item => ({ tag: 'PLAY', title: item.label, meta: `${item.points} points / no real funds`, value: new Date(item.at).toLocaleDateString() })));
+    const avatar = record.avatar ? `<img src="${record.avatar}" alt="${esc(record.username)} profile picture">` : `<span>${esc(record.username.slice(0, 2).toUpperCase())}</span>`;
+    const following = identity && savedSet('stance.following').has(identity.toLowerCase()), alerted = identity && savedSet('stance.alerts').has(identity.toLowerCase());
+    const edit = own && profileEditing ? `<form class="profile-editor" id="profile-form"><label>Username<input id="profile-username" value="${esc(record.username)}" minlength="2" maxlength="24" pattern="[A-Za-z0-9_.]+" required></label><label>Bio<textarea id="profile-bio" rows="3" maxlength="160">${esc(record.bio)}</textarea></label><label>Profile picture<input id="profile-avatar" type="file" accept="image/png,image/jpeg,image/webp"></label><div><button class="primary" type="submit">Save profile</button><button class="secondary" type="button" id="cancel-profile-edit">Cancel</button></div><p class="status" id="profile-status">PNG, JPG, or WebP. Maximum 500 KB.</p></form>` : '';
+    const actionButtons = own ? `<button class="secondary" id="edit-profile">Edit profile</button><button class="primary" id="share-receipts">Share receipts</button>` : `<button class="secondary follow-btn" data-author="${identity}">${following ? 'Following' : 'Follow'}</button><button class="secondary alert-btn ${alerted ? 'on' : ''}" data-author="${identity}">${alerted ? 'Alerts on' : 'Turn on alerts'}</button>`;
+    return `<div class="dashboard-hero"><div class="dashboard-avatar">${avatar}</div><div class="dashboard-copy"><p class="eyebrow">${own ? 'YOUR PROFILE' : 'PUBLIC PROFILE'}</p><h1>@${esc(record.username)}</h1><p>${esc(record.bio)}</p><div class="tags"><span>${proofs.length ? 'ONCHAIN CALLER' : 'NEW CALLER'}</span><span>${playProfile().points.toLocaleString()} PLAY POINTS</span>${identity ? '<span>MONAD WALLET</span>' : ''}</div></div><div class="dashboard-actions">${actionButtons}</div></div>${edit}<div class="dashboard-stats"><article><label>Stances</label><h2>${stances.length}</h2><p>${proofs.length} published on Monad</p></article><article><label>Live</label><h2>${stances.filter(item => item.status === 'LIVE').length}</h2><p>Current public positions</p></article><article><label>Hold integrity</label><h2>${proofs.length ? 'Tracking' : 'Pending'}</h2><p>Said vs Did</p></article><article><label>Portfolios</label><h2>${tails.length}</h2><p>Attributed Trails</p></article><article><label>Receipts</label><h2>${receipts.length}</h2><p>Permanent actions found</p></article></div><div class="dashboard-body"><section class="receipt-panel"><div class="receipt-heading"><div><p class="eyebrow">RECEIPTS</p><h2>History that stays attached.</h2></div><div class="receipt-tabs"><button class="on">All</button><button>Stances</button><button>Markets</button><button>Portfolios</button></div></div>${receipts.length ? receipts.map(item => `<div class="receipt-row"><span>${esc(item.tag)}</span><div><b>${esc(item.title)}</b><small>${esc(item.meta)}</small></div><strong>${esc(item.value)}</strong></div>`).join('') : `<div class="dashboard-empty"><b>No receipts yet.</b><p>Publish a Stance, take a market position, or Trail a Portfolio to start the record.</p></div>`}</section><aside class="dashboard-side"><div class="receipt-card"><div><b>stance</b><span>RECEIPTS CARD</span></div><h2>@${esc(record.username)}</h2><p>${proofs.length} onchain Stances / ${receipts.length} receipts</p><div><span><small>LIVE STANCES</small><b>${stances.filter(item => item.status === 'LIVE').length}</b></span><span><small>PLAY POINTS</small><b>${playProfile().points.toLocaleString()}</b></span></div><code>stance.click/${esc(record.username)}</code></div><article><h2>Said vs Did</h2><p>${proofs.length ? `${proofs.length} thesis and trade commitments are public. Monitoring will score adds, trims, exits, and expiries as indexed evidence becomes available.` : 'Publish the first onchain Stance to begin a public Said vs Did record.'}</p></article></aside></div>`;
+  }
+  function myDashboard() { return userDashboard(state.wallet || '', true); }
   function profile() {
     const address = route.split('/')[1] || '';
-    const items = feedEntries().filter(item => item.author?.toLowerCase() === address.toLowerCase());
-    const following = savedSet('stance.following').has(address.toLowerCase());
-    const alerted = savedSet('stance.alerts').has(address.toLowerCase());
-    return `<div class="profile-hero"><button class="back-link" data-route="feed">← Back to Feeds</button><div class="profile-identity"><span class="avatar big">${address.slice(2, 4).toUpperCase()}</span><div><p class="eyebrow">MONAD CALLER</p><h1>${short(address)}</h1><a href="${explorer('address', address)}" target="_blank" rel="noreferrer">View wallet ↗</a></div></div><div class="profile-actions"><button class="primary follow-btn" data-author="${address}">${following ? 'Following' : 'Follow caller'}</button><button class="secondary alert-btn ${alerted ? 'on' : ''}" data-author="${address}">${alerted ? 'Alerts on' : 'Turn on alerts'}</button></div></div><div class="profile-stats"><div><span>STANCES</span><b>${items.length}</b></div><div><span>LIVE</span><b>${items.filter(x => x.status === 'LIVE').length}</b></div><div><span>TRAILED</span><b>${(state.data?.tails || []).filter(x => String(x.caller).toLowerCase() === address.toLowerCase()).length}</b></div></div><div class="feed-list profile-feed">${items.length ? items.map(stanceCard).join('') : empty('No public Stances from this wallet.', 'The profile is live, but this wallet has not published a Stance in the indexed range.')}</div>`;
+    return userDashboard(address, false);
   }
 
   async function connectedWallet() { if (!window.StanceWallet) throw new Error('Wallet is still loading'); return window.StanceWallet.getAccount() || window.StanceWallet.connect(); }
@@ -162,8 +180,19 @@
     panel.dataset.trade = JSON.stringify(trade);
     panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+  async function handleProfileSave(event) {
+    event.preventDefault(); const status = document.getElementById('profile-status');
+    try {
+      const username = document.getElementById('profile-username').value.trim().replace(/^@/, '');
+      if (!/^[A-Za-z0-9_.]{2,24}$/.test(username)) throw new Error('Use 2 to 24 letters, numbers, dots, or underscores');
+      const bio = document.getElementById('profile-bio').value.trim(), file = document.getElementById('profile-avatar').files[0], key = String(state.wallet || 'guest').toLowerCase(), profiles = storedProfiles(), current = profileRecord(state.wallet);
+      let avatar = current.avatar;
+      if (file) { if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) throw new Error('Choose a PNG, JPG, or WebP image'); if (file.size > 500000) throw new Error('Profile picture must be smaller than 500 KB'); avatar = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); }); }
+      profiles[key] = { username, bio, avatar }; localStorage.setItem('stance.profiles', JSON.stringify(profiles)); profileEditing = false; render();
+    } catch (error) { status.textContent = error.message; }
+  }
   function render() {
-    const root = document.getElementById('stance-live-root'); if (!root) return; const pages = { feed, trade, markets: nativeMarket, publish, trails: portfolios, receipts: activity, alerts, wallet, integrations };
+    const root = document.getElementById('stance-live-root'); if (!root) return; const pages = { feed, trade, markets: nativeMarket, publish, trails: portfolios, receipts: activity, alerts, wallet, me: myDashboard, integrations };
     const page = route.startsWith('profile/') ? profile : (pages[route] || feed);
     root.innerHTML = layout(state.loading && !state.data ? empty('Reading Monad…', 'Loading contracts and events.') : page());
     if (appMode === 'play') {
@@ -172,7 +201,7 @@
       const spotMode = root.querySelector('[data-trade-mode="spot"] small'); if (spotMode) spotMode.textContent = 'PLAY · POINTS';
       const evidence = document.getElementById('stance-evidence'); evidence?.removeAttribute('required');
     }
-    root.querySelectorAll('[data-route]').forEach(el => el.onclick = () => { location.hash = `#/${el.dataset.route}`; });
+    root.querySelectorAll('[data-route]').forEach(el => el.onclick = () => { location.hash = `#/${el.classList.contains('account-link') ? 'me' : el.dataset.route}`; });
     root.querySelectorAll('[data-app-mode]').forEach(el => el.onclick = () => { appMode = el.dataset.appMode; localStorage.setItem('stance.mode', appMode); render(); });
     root.querySelectorAll('[data-feed-category]').forEach(el => el.onclick = () => { feedCategory = el.dataset.feedCategory; render(); });
     root.querySelectorAll('[data-trade-mode]').forEach(el => el.onclick = () => { tradeMode = el.dataset.tradeMode; render(); });
@@ -183,6 +212,10 @@
     document.getElementById('flip-assets')?.addEventListener('click', () => { const from = document.getElementById('token-in'), to = document.getElementById('token-out'), current = from.value; from.value = to.value; to.value = current; });
     root.querySelectorAll('[data-post-trade="publish"]').forEach(el => el.onclick = () => { const trade = JSON.parse(document.getElementById('trade-next')?.dataset.trade || '{}'); localStorage.setItem('stance.trade.draft', JSON.stringify({ ...trade, evidenceURI: trade.hash ? explorer('tx', trade.hash) : '' })); location.hash = '#/publish'; });
     root.querySelectorAll('[data-profile]').forEach(el => el.onclick = () => { location.hash = `#/profile/${el.dataset.profile}`; });
+    document.getElementById('edit-profile')?.addEventListener('click', () => { profileEditing = true; render(); });
+    document.getElementById('cancel-profile-edit')?.addEventListener('click', () => { profileEditing = false; render(); });
+    document.getElementById('profile-form')?.addEventListener('submit', handleProfileSave);
+    document.getElementById('share-receipts')?.addEventListener('click', async () => { const record = profileRecord(state.wallet); const url = `${location.origin}/app#/profile/${state.wallet || record.username}`; try { await navigator.clipboard.writeText(url); document.getElementById('share-receipts').textContent = 'Link copied'; } catch { document.getElementById('share-receipts').textContent = 'Copy failed'; } });
     root.querySelectorAll('.follow-btn').forEach(el => el.onclick = () => toggleSaved('stance.following', el.dataset.author));
     root.querySelectorAll('.alert-btn').forEach(el => el.onclick = () => toggleSaved('stance.alerts', el.dataset.author));
     root.querySelectorAll('.market-side').forEach(el => el.onclick = () => handleNativeMarket(el));
