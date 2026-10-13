@@ -14,7 +14,7 @@
   let appMode = localStorage.getItem('stance.mode') || 'play';
   let profileEditing = false;
   let state = { loading: true, error: '', data: null, wallet: null };
-  const nav = [['feed', 'Feeds'], ['trade', 'Trade'], ['markets', 'Market'], ['publish', 'Publish a Stance'], ['trails', 'Portfolios'], ['receipts', 'My Activity'], ['alerts', 'Alerts'], ['wallet', 'Wallet'], ['integrations', 'Integrations']];
+  const nav = [['feed', 'Feeds'], ['trade', 'Trade'], ['markets', 'Market'], ['publish', 'Publish a Stance'], ['trails', 'Portfolios'], ['receipts', 'My Activity']];
   const empty = (title, body, action = '') => `<div class="empty"><h2>${title}</h2><p>${body}</p>${action}</div>`;
   const row = event => `<a class="row" href="${explorer('tx', event.transactionHash)}" target="_blank" rel="noreferrer"><div><b>${esc(event.kind || 'Monad transaction')}</b><p>${esc(event.detail || `Block ${event.blockNumber}`)}</p></div><span>${short(event.transactionHash)} ↗</span></a>`;
   const logo = '<svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#F1EFE8"></rect><line x1="11" y1="29" x2="25" y2="15" stroke="#0B0B0F" stroke-width="5" stroke-linecap="round"></line><circle cx="28" cy="12" r="5" fill="#FF8A3D"></circle></svg>';
