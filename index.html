@@ -743,7 +743,8 @@ select option{background:#15151C;color:#F1EFE8}
       <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
         <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:20px">
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
-            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;color:#A9A7A0">USDC balance</span><span style="font-family:'JetBrains Mono',monospace;font-size:38px">${{ balance }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">+ $3.12 conviction yield today</span></div>
+            <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;color:#A9A7A0">Demo balance</span><span style="font-family:'JetBrains Mono',monospace;font-size:38px">${{ balance }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#A9A7A0">Play-mode simulation</span></div>
+            <div style="background:#15151C;border:1px solid #4A3423;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;color:#A9A7A0">Live Agora AUSD · Monad</span><span id="ausd-live-balance" style="font-family:'JetBrains Mono',monospace;font-size:32px">Connect wallet</span><span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FF8A3D">On-chain balance</span></div>
             <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:8px"><span style="font-size:14px;color:#A9A7A0">Play points</span><span style="font-family:'JetBrains Mono',monospace;font-size:38px">{{ points }}</span><span style="font-size:13px;color:#A9A7A0">100 points = $1 of stance size</span></div>
           </div>
           <div style="background:#15151C;border:1px solid #24242C;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px">
@@ -1546,6 +1547,7 @@ class Component extends DCLogic {
 })();
 </script>
   <script src="./wallet.bundle.js?v=20261013-mera"></script>
+  <script src="./balance.js?v=20261013-agora"></script>
   <script src="./trading.js?v=20261012-kuru"></script>
 </body>
 </html>

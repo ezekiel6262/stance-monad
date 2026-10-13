@@ -13,6 +13,7 @@ export default function handler(req, res) {
     realMoneyEnabled: process.env.REAL_MONEY_ENABLED === 'true',
     services: {
       monad: true,
+      agora: true,
       // Perpl public Monad market data is live without authentication. Account
       // analytics require a wallet-scoped Ed25519 API key and stay separate.
       perpl: true,

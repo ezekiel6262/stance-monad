@@ -27,6 +27,7 @@ test('reports public Perpl data separately from wallet account access', () => {
 
   assert.equal(res.statusCode, 200);
   assert.equal(data.services.perpl, true);
+  assert.equal(data.services.agora, true);
   assert.equal(data.services.perplAccount, false);
   assert.equal(data.services.mera, true);
 

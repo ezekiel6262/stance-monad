@@ -22,6 +22,7 @@ The deployed integration layer now exposes live health and readiness endpoints:
 - Perpl binds enrolled keys to an approved HTTP origin. Production account analytics require Perpl to whitelist `https://stance-monad.vercel.app` and a key enrolled from that origin.
 - `GET /api/envio` reads current Monad height and recent Stance contract events through Envio HyperSync
 - Mera passkeys create or recover three deterministic Monad accounts—Trading, Proof, and Trail—from one biometric credential; keys remain in the browser session and are cleared when the session ends
+- `GET /api/ausd?wallet=0x...` reads the connected wallet's live Agora AUSD balance from Monad; the wallet screen labels simulated play funds separately from on-chain AUSD
 - `GET /api/integrations` reports configuration readiness without exposing secrets
 - `POST /api/nansen` provides an allow-listed, Monad-only server proxy
 - `POST /api/kuru-quote` obtains a wallet-bound Kuru Flow quote
