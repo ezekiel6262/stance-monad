@@ -31,6 +31,13 @@ const MERA_CREDENTIAL = 'stance.mera.credential';
 const MERA_USER = 'stance.mera.user';
 const MERA_ROLES = ['Trading', 'Proof', 'Trail'];
 
+function announceWallet(address, provider, extra = {}) {
+  if (!address) return;
+  window.dispatchEvent(new CustomEvent('stance:wallet-connected', {
+    detail: { address, provider, ...extra }
+  }));
+}
+
 function deriveMeraKey(prfOutput, index) {
   const seed = mnemonicToSeedSync(entropyToMnemonic(prfOutput, wordlist));
   const node = HDKey.fromMasterSeed(seed).derive(`m/44'/60'/0'/0/${index}`);
@@ -72,6 +79,7 @@ function installMeraWallet(active, session) {
       window.StanceWalletProvider = null;
     }
   };
+  announceWallet(active.account.address, 'mera', { role: active.role });
 }
 
 function MeraWalletButton() {
@@ -177,12 +185,16 @@ function PrivyWalletButton() {
       walletRef.current = connected;
       await connected.switchChain(MONAD.id);
       window.StanceWalletProvider = 'privy';
+      announceWallet(connected.address, 'privy');
     }
   });
 
   useEffect(() => {
     walletRef.current = wallet;
-    if (wallet) wallet.switchChain(MONAD.id).catch(() => {});
+    if (wallet) {
+      wallet.switchChain(MONAD.id).catch(() => {});
+      announceWallet(wallet.address, 'privy');
+    }
   }, [wallet]);
 
   useEffect(() => {
@@ -255,6 +267,7 @@ function injectedFallback() {
     [account] = await window.ethereum.request({ method: 'eth_requestAccounts' });
     await switchToMonad(window.ethereum);
     button.textContent = short(account);
+    announceWallet(account, 'wallet');
     return account;
   };
   window.StanceWallet = {
@@ -298,7 +311,7 @@ async function start() {
           // PassKeys remain enabled in the Privy dashboard. The connector modal
           // accepts email and external wallets as its explicit entry methods;
           // enrolled passkeys are surfaced by Privy during authentication.
-          loginMethods: ['email', 'wallet'],
+          loginMethods: ['email', 'google', 'wallet'],
           defaultChain: MONAD,
           supportedChains: [MONAD],
           embeddedWallets: { ethereum: { createOnLogin: 'users-without-wallets' } }

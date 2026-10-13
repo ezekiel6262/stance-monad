@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Join Stance</title>
+  <meta name="description" content="Create your Stance account and start building a public onchain record on Monad.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/onboarding.css?v=20261013">
+</head>
+<body>
+  <main class="onboarding-shell">
+    <section class="onboarding-card" aria-live="polite">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="Stance home">
+          <svg width="31" height="31" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#F1EFE8"></rect><line x1="11" y1="29" x2="25" y2="15" stroke="#0B0B0F" stroke-width="5" stroke-linecap="round"></line><circle cx="28" cy="12" r="5" fill="#FF8A3D"></circle></svg>
+          <span>stance</span>
+        </a>
+        <button class="text-button" id="skip" type="button">Sign in later</button>
+      </header>
+      <div class="progress" aria-label="Onboarding progress"><span id="progress-fill"></span></div>
+      <div class="step active" data-step="0">
+        <div class="eyebrow">WELCOME TO STANCE</div>
+        <h1>Build a record<br>behind every call.</h1>
+        <p class="lead">Publish what you believe, connect the trade, and let people see what happened next.</p>
+        <div class="auth-list">
+          <button class="auth-button primary" data-auth="google" type="button"><span class="google-mark">G</span><span>Continue with Google</span></button>
+          <button class="auth-button" data-auth="email" type="button"><span class="auth-icon">@</span><span>Continue with email</span></button>
+          <button class="auth-button" data-auth="wallet" type="button"><span class="auth-icon">◇</span><span>Continue with wallet</span></button>
+          <button class="auth-button passkey" data-auth="passkey" type="button"><span class="auth-icon">●</span><span>Continue with passkey</span><small>Mera</small></button>
+        </div>
+        <p class="fine-print">By continuing, you agree to the Stance terms and acknowledge that trading involves risk.</p>
+      </div>
+      <div class="step" data-step="1">
+        <div class="eyebrow">ACCOUNT READY</div>
+        <h2>Your Monad account<br>is connected.</h2>
+        <p class="lead">This address signs your trades and connects your public Stances to onchain activity.</p>
+        <div class="account-card">
+          <div class="account-orb"><span></span></div>
+          <div><span class="label">CONNECTED ADDRESS</span><strong id="wallet-address">Waiting for connection</strong><small id="wallet-provider">Monad / chain 143</small></div>
+          <span class="status-dot">LIVE</span>
+        </div>
+        <div class="privacy-note"><span>✓</span><p><strong>You stay in control.</strong> Stance never holds your funds. Transactions require your approval.</p></div>
+        <button class="continue-button" data-next="2" type="button">Choose your interests</button>
+      </div>
+      <div class="step" data-step="2">
+        <div class="eyebrow">MAKE IT YOURS</div>
+        <h2>What do you take<br>a stance on?</h2>
+        <p class="lead">Pick at least two. This shapes your feed and can be changed later.</p>
+        <div class="topic-grid" id="topic-grid">
+          <button type="button" data-topic="Tokens">Tokens</button><button type="button" data-topic="Perpetuals">Perpetuals</button>
+          <button type="button" data-topic="Memecoins">Memecoins</button><button type="button" data-topic="DeFi">DeFi</button>
+          <button type="button" data-topic="NFTs">NFTs</button><button type="button" data-topic="Culture">Culture</button>
+          <button type="button" data-topic="Sports">Sports</button><button type="button" data-topic="Technology">Technology</button>
+        </div>
+        <button class="continue-button" id="topics-next" type="button" disabled>Continue <span id="topic-count">0 / 2</span></button>
+      </div>
+      <div class="step" data-step="3">
+        <div class="eyebrow">YOUR STARTING POINT</div>
+        <h2>What do you want<br>to do first?</h2>
+        <p class="lead">We will open Stance on the right page. Everything remains available in the app.</p>
+        <div class="intent-list">
+          <button type="button" data-intent="publish" data-route="/app#/publish"><span class="intent-number">01</span><span><strong>Publish a Stance</strong><small>Write your thesis and connect a position.</small></span><b>→</b></button>
+          <button type="button" data-intent="trade" data-route="/app#/trade"><span class="intent-number">02</span><span><strong>Buy or swap</strong><small>Trade on Monad through Kuru.</small></span><b>→</b></button>
+          <button type="button" data-intent="trail" data-route="/app#/portfolio"><span class="intent-number">03</span><span><strong>Trail a Portfolio</strong><small>Start from another person's public Stance.</small></span><b>→</b></button>
+          <button type="button" data-intent="explore" data-route="/app"><span class="intent-number">04</span><span><strong>Explore first</strong><small>See what people are taking positions on.</small></span><b>→</b></button>
+        </div>
+      </div>
+      <div class="step finish-step" data-step="4">
+        <div class="finish-mark"><span>✓</span></div>
+        <div class="eyebrow">YOU ARE IN</div>
+        <h2>Your record<br>starts now.</h2>
+        <p class="lead">Your account is ready on Monad. Publish clearly, trade deliberately, and let the record speak.</p>
+        <div class="summary-card">
+          <div><span>Account</span><strong id="summary-address"></strong></div>
+          <div><span>Feed</span><strong id="summary-topics"></strong></div>
+          <div><span>First stop</span><strong id="summary-intent"></strong></div>
+        </div>
+        <a class="continue-button launch" id="launch-app" href="/app">Open Stance</a>
+      </div>
+      <div id="auth-status" class="auth-status" role="status"></div>
+      <div id="connect-wallet-root" class="wallet-mount" aria-hidden="true"><button id="connect-wallet" type="button">Loading</button></div>
+    </section>
+    <aside class="onboarding-context">
+      <div class="context-top"><span class="live-dot"></span> LIVE ON MONAD</div>
+      <blockquote>“Your thesis and your trade, connected in one public Stance.”</blockquote>
+      <div class="mini-proof"><span>STANCE / 001</span><strong>Conviction becomes a track record.</strong><div><i></i><i></i></div><small>SELF CUSTODY / ONCHAIN HISTORY</small></div>
+    </aside>
+  </main>
+  <script src="/wallet.bundle.js?v=20261013"></script>
+  <script src="/onboarding.js?v=20261013"></script>
+</body>
+</html>
