@@ -210,7 +210,7 @@
         payload = result.data; sessionStorage.setItem(cacheKey, JSON.stringify({ expires: Date.now() + 300000, payload }));
       }
       const trades = Array.isArray(payload?.data) ? payload.data : [];
-      target.innerHTML = `<span>NANSEN SMART MONEY · MONAD</span>${trades.length ? trades.slice(0, 3).map(item => `<div><b>${esc(item.token_bought_symbol || item.token_sold_symbol || 'Token')}</b><small>${esc(item.trader_address_label || short(item.trader_address || ''))} · $${Number(item.trade_value_in_usd || 0).toLocaleString()}</small></div>`).join('') : '<p>No recent labelled trades returned.</p>'}`;
+      target.innerHTML = `<span>NANSEN SMART MONEY · MONAD</span>${trades.length ? trades.slice(0, 3).map(item => `<div><b>${esc(item.token_bought_symbol || item.token_sold_symbol || 'Token')}</b><small>${esc(item.trader_address_label || short(item.trader_address || ''))} · $${Number(item.trade_value_usd ?? item.trade_value_in_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}</small></div>`).join('') : '<p>No recent labelled trades returned.</p>'}`;
     } catch (_) { target.innerHTML = '<span>NANSEN SMART MONEY</span><p>Live intelligence is temporarily unavailable. Trading remains available through Kuru.</p>'; }
   }
   async function handleProfileSave(event) {
