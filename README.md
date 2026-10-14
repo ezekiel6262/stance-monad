@@ -23,10 +23,12 @@ The deployed integration layer now exposes live health and readiness endpoints:
 - `GET /api/envio` reads current Monad height and recent Stance contract events through Envio HyperSync
 - Mera passkeys create or recover three deterministic Monad accounts—Trading, Proof, and Trail—from one biometric credential; keys remain in the browser session and are cleared when the session ends
 - `GET /api/ausd?wallet=0x...` reads the connected wallet's live Agora AUSD balance from Monad; the wallet screen labels simulated play funds separately from on-chain AUSD
+- `POST /api/nansen` powers the Spot trade screen with recent Monad Smart Money DEX activity; the browser caches the response for five minutes to limit API-credit usage
 - `stance-cre/objective-stance` contains a reproducible Chainlink CRE workflow for quorum-based objective Stance resolution. It is locally simulated, not deployed; CRE production access requires a separate commercial agreement.
 - `GET /api/integrations` reports configuration readiness without exposing secrets
 - `POST /api/nansen` provides an allow-listed, Monad-only server proxy
 - `POST /api/kuru-quote` obtains a wallet-bound Kuru Flow quote
+- the Trade screen keeps Play execution wallet-free and uses the persistent Privy, Mera, or injected-wallet session only after the user explicitly switches to Real
 - `POST /api/kuru-transaction` returns ordered approval and swap requests for wallet signing
 - `POST /api/execute` fails closed until audited contracts, wallet policies and routing are configured
 - `POST /api/trail-plan` builds an immutable, risk-checked Trail Portfolio plan for Monad; live legs are restricted to approved Kuru assets

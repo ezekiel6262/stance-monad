@@ -38,6 +38,10 @@ function announceWallet(address, provider, extra = {}) {
   }));
 }
 
+function announceDisconnect(provider) {
+  window.dispatchEvent(new CustomEvent('stance:wallet-disconnected', { detail: { provider } }));
+}
+
 function deriveMeraKey(prfOutput, index) {
   const seed = mnemonicToSeedSync(entropyToMnemonic(prfOutput, wordlist));
   const node = HDKey.fromMasterSeed(seed).derive(`m/44'/60'/0'/0/${index}`);
@@ -54,7 +58,7 @@ function meraMessage(error) {
   return 'Mera passkey operation failed.';
 }
 
-function installMeraWallet(active, session) {
+function installMeraWallet(active, session, onLogout) {
   const walletClient = createWalletClient({ account: active.account, chain: MONAD, transport: http() });
   const publicClient = createPublicClient({ chain: MONAD, transport: http() });
   window.StanceWalletProvider = 'mera';
@@ -73,10 +77,12 @@ function installMeraWallet(active, session) {
       if (receipt.status !== 'success') throw new Error('Transaction reverted on Monad');
       return receipt;
     },
-    logout: () => {
+    logout: async () => {
       session.end();
       window.StanceWallet = null;
       window.StanceWalletProvider = null;
+      onLogout?.();
+      announceDisconnect('mera');
     }
   };
   announceWallet(active.account.address, 'mera', { role: active.role });
@@ -94,7 +100,11 @@ function MeraWalletButton() {
     sessionRef.current = nextSession;
     setAccounts(nextAccounts);
     setActiveIndex(index);
-    installMeraWallet(nextAccounts[index], nextSession);
+    installMeraWallet(nextAccounts[index], nextSession, () => {
+      sessionRef.current = null;
+      setAccounts([]);
+      setActiveIndex(0);
+    });
   };
 
   const connect = async () => {
@@ -231,26 +241,43 @@ function PrivyWalletButton() {
         }
         throw new Error('Transaction confirmation timed out');
       },
-      logout
+      provider: 'privy',
+      logout: async () => {
+        const active = walletRef.current;
+        try { await active?.disconnect?.(); } catch (_) {}
+        await logout();
+        walletRef.current = null;
+        window.StanceWallet = null;
+        window.StanceWalletProvider = null;
+        announceDisconnect('privy');
+      }
     };
     window.StanceWalletProvider = 'privy';
   }, [connectOrCreateWallet, logout, wallet]);
 
-  const disabled = false;
+  const disabled = !ready;
   const label = wallet ? short(wallet.address) : authenticated ? 'Create wallet' : 'Sign in / Connect';
-  return React.createElement('button', {
-    id: 'connect-wallet', style: buttonStyle, disabled,
-    title: wallet ? 'Privy wallet connected on Monad' : 'Sign in with email, passkey, or an external wallet',
-    onClick: () => {
-      window.StanceWalletProvider = 'privy';
-      connectOrCreateWallet().catch(error => console.error('Privy wallet connection failed', error));
-    }
-  }, label);
+  return React.createElement('span', { style: { display: 'grid', gap: 7 } },
+    React.createElement('button', {
+      id: 'connect-wallet', style: buttonStyle, disabled,
+      title: wallet ? 'Privy wallet connected on Monad' : 'Sign in with email, passkey, or an external wallet',
+      onClick: () => {
+        if (wallet) return;
+        window.StanceWalletProvider = 'privy';
+        connectOrCreateWallet().catch(error => console.error('Privy wallet connection failed', error));
+      }
+    }, label),
+    wallet ? React.createElement('button', {
+      id: 'disconnect-wallet', style: { ...buttonStyle, color: '#FF9D8A' },
+      onClick: () => window.StanceWallet?.logout?.()
+    }, 'Disconnect and sign out') : null
+  );
 }
 
 function injectedFallback() {
   const button = document.getElementById('connect-wallet');
   let account = null;
+  if (button) button.textContent = window.ethereum ? 'Connect browser wallet' : 'Install or open a wallet';
   const switchToMonad = async provider => {
     try {
       await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x8f' }] });
@@ -288,6 +315,13 @@ function injectedFallback() {
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
       throw new Error('Transaction confirmation timed out');
+    },
+    logout: async () => {
+      try { await window.ethereum?.request?.({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }); } catch (_) {}
+      account = null;
+      window.StanceWallet = null;
+      window.StanceWalletProvider = null;
+      announceDisconnect('wallet');
     }
   };
   button?.addEventListener('click', () => connect().catch(error => { button.title = error.message; }));

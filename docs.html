@@ -38,10 +38,12 @@
     <div class="status"><span class="dot"></span><div><strong>Monad:</strong> live RPC and deployed Stance contracts on chain ID <code>143</code>.</div></div>
     <div class="status"><span class="dot"></span><div><strong>Privy and Mera:</strong> embedded sign-in plus passkey-derived Trading, Proof and Trail accounts.</div></div>
     <div class="status"><span class="dot"></span><div><strong>Agora:</strong> live AUSD balance reads for the connected Monad wallet.</div></div>
-    <div class="status"><span class="dot"></span><div><strong>Kuru:</strong> wallet-bound quote and transaction planning endpoints are connected.</div></div>
+    <div class="status"><span class="dot"></span><div><strong>Kuru:</strong> live Monad quotes, allowance checks, wallet approvals and swaps for AUSD, USDC and WMON.</div></div>
+    <div class="status"><span class="dot"></span><div><strong>Nansen:</strong> Monad Smart Money DEX activity is shown inside the Spot trade workflow and cached briefly to protect API credits.</div></div>
     <div class="status"><span class="dot"></span><div><strong>Envio:</strong> Monad event indexing and position tracking are configured.</div></div>
     <div class="status locked"><span class="dot"></span><div><strong>Perpl account analytics:</strong> awaiting production-origin whitelisting by Perpl. Public Monad context remains available.</div></div>
-    <div class="status locked"><span class="dot"></span><div><strong>Real-money execution:</strong> intentionally safety-locked until the contracts, wallet policies, routing and monitoring pass final review.</div></div>
+    <div class="status"><span class="dot"></span><div><strong>Real mode:</strong> live Kuru Spot swaps and Stance contract actions require explicit confirmation from the connected wallet. The server never holds user keys.</div></div>
+    <div class="status locked"><span class="dot"></span><div><strong>Prediction trading:</strong> coming soon while a Monad-native venue is selected and reviewed.</div></div>
 
     <h2>Contracts</h2>
     <p>StanceMarket: <a href="https://monadscan.com/address/0x6f9103855b1c699f3ce1eb5105415cd2f6ca796e">0x6f91…796e</a></p>
