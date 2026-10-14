@@ -1,4 +1,5 @@
 node_modules/
+pitch-video/
 wallet.bundle.js
 stance-cre/.tools/
 stance-cre/**/.cre_build_tmp.*
