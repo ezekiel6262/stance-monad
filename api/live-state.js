@@ -1,5 +1,6 @@
 import { createPublicClient, defineChain, formatUnits, http, isAddress, parseAbi } from 'viem';
 import { json, MONAD_CHAIN_ID, MONAD_RPC_URL } from './_shared.js';
+import { readEnvioEvents } from './_envio.js';
 
 const MARKET = process.env.STANCE_MARKET_ADDRESS || '0x6f9103855b1c699f3ce1eb5105415cd2f6ca796e';
 const PORTFOLIO = process.env.STANCE_PORTFOLIO_ADDRESS || '0x4e2c91fe23e2415d110c9af24474dc1b21c3aeb9';
@@ -60,20 +61,25 @@ export async function readLiveState(wallet) {
     catch { return []; }
   };
   const walletFilter = wallet || undefined;
-  const [proofs, tails, positions, resolutions, claims] = await Promise.all([
-    eventQuery(PORTFOLIO, portfolioAbi, 'ProofStancePublished'),
-    eventQuery(PORTFOLIO, portfolioAbi, 'TailRecorded'),
-    eventQuery(MARKET, marketAbi, 'PositionTaken', wallet ? { account: walletFilter } : undefined),
-    eventQuery(MARKET, marketAbi, 'MarketResolved'),
-    eventQuery(MARKET, marketAbi, 'Claimed', wallet ? { account: walletFilter } : undefined)
-  ]);
+  let indexed;
+  try {
+    indexed = await readEnvioEvents({ market: MARKET, portfolio: PORTFOLIO, wallet, token: process.env.ENVIO_API_TOKEN, startBlock: process.env.STANCE_INDEX_START_BLOCK || 0 });
+  } catch (error) {
+    const [proofs, tails, positions, resolutions, claims] = await Promise.all([
+      eventQuery(PORTFOLIO, portfolioAbi, 'ProofStancePublished'), eventQuery(PORTFOLIO, portfolioAbi, 'TailRecorded'),
+      eventQuery(MARKET, marketAbi, 'PositionTaken', wallet ? { account: walletFilter } : undefined),
+      eventQuery(MARKET, marketAbi, 'MarketResolved'), eventQuery(MARKET, marketAbi, 'Claimed', wallet ? { account: walletFilter } : undefined)
+    ]);
+    indexed = { provider: 'Monad RPC fallback', indexedHeight: Number(latestBlock), startBlock: Number(fromBlock), eventCount: proofs.length + tails.length + positions.length + resolutions.length + claims.length, error: error.message,
+      proofs: proofs.map(serialiseLog).reverse(), tails: tails.map(serialiseLog).reverse(), positions: positions.map(serialiseLog).reverse(), resolutions: resolutions.map(serialiseLog).reverse(), claims: claims.map(serialiseLog).reverse(), activity: [] };
+  }
 
   return {
-    ok: true, source: 'Monad Mainnet', chainId: MONAD_CHAIN_ID, latestBlock: Number(latestBlock),
+    ok: true, source: indexed.provider, chainId: MONAD_CHAIN_ID, latestBlock: Number(latestBlock),
     indexedFromBlock: Number(fromBlock), contracts: { market: MARKET, portfolio: PORTFOLIO }, wallet: wallet || null,
-    markets: marketRows,
-    proofs: proofs.map(serialiseLog).reverse(), tails: tails.map(serialiseLog).reverse(),
-    positions: positions.map(serialiseLog).reverse(), resolutions: resolutions.map(serialiseLog).reverse(), claims: claims.map(serialiseLog).reverse()
+    envio: { provider: indexed.provider, indexedHeight: indexed.indexedHeight, startBlock: indexed.startBlock, eventCount: indexed.eventCount, fallback: Boolean(indexed.error), error: indexed.error || null },
+    markets: marketRows, proofs: indexed.proofs, tails: indexed.tails, positions: indexed.positions, resolutions: indexed.resolutions, claims: indexed.claims,
+    onchainActivity: indexed.activity.slice(0, 20)
   };
 }
 
